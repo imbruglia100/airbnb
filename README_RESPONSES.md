@@ -1,8 +1,61 @@
-# `<name of application here>`
+# `Airnbn`
 
 ## Database Schema Design
 
-`<insert database schema design here>`
+`Table Spots {
+  id integer pk
+  ownerId integer [Ref: < Users.id]
+  address varchar
+  city varchar
+  state varchar
+  country varchar
+  lat float
+  lng float
+  name varchar
+  description varchar
+  price float
+  numReviews integer
+  avgStarRating float
+  previewImage varchar
+}
+
+Table Users {
+  id integer pk
+  firstName varchar
+  lastName varchar
+  email varchar
+  username varchar
+}
+
+Table Reviews {
+  id integer pk
+  userId integer [ref: < Users.id]
+  spotId integer [ref: <> Spots.id]
+  review varchar
+  stars float
+}
+
+Table Bookings {
+  id integer pk
+  userId integer [ref: <> Users.id]
+  spotId integer [ref: <> Spots.id]
+  startTime date
+  endTime date
+}
+
+Table SpotImages {
+  id integer pk
+  spotId integer [ref: < Spots.id]
+  image varchar
+  isPreview boolean
+}
+
+Table ReviewImages {
+  id integer pk
+  reviewId integer [ref: < Reviews.id]
+  image varchar
+  isPreview boolean
+}`
 
 ## API Documentation
 
