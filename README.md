@@ -1,379 +1,1507 @@
-# Kanban Project Board Cards
+# `Airnbn`
 
-The following cards will guide the implementation of the AirBnB API. Each
-section should be copied into it's own card on the Kanban project board.
-Each feature's progress should be tracked by checking off requirements as they
-are met and progressing the cards from the `Backlog`, `Next Tasks`,
-`In Progress`, `In Review`, and `Accepted` columns.
+## Database Schema Design
+![Database Schema Design](./images/DBairnbn.png)
+`
+Table Spots { id integer pk
+  ownerId integer [Ref: > Users.id]
+  address varchar
+  city varchar
+  state varchar
+  country varchar
+  lat float
+  lng float
+  name varchar
+  description varchar
+  price float
+}
 
-## Notes
+Table Users {
+  id integer pk
+  firstName varchar
+  lastName varchar
+  email varchar
+  username varchar
+  hashedPassword varchar
+  }
 
-The first two cards, "Authentication Required" and "Authorization Required" are
-general tasks to be applied to endpoints that list these requirements. Check
-the API Documentation for whether or not an endpoint needs any kind of
-authentication or authorization
+Table Reviews {
+  id integer pk
+  userId integer [ref: > Users.id]
+  spotId integer [ref: > Spots.id]
+  review varchar
+  stars float
+  }
 
-Sign Up, Log In, and Get Current User endpoints are part of Authenticate Me,
-and as such should already be complete. Ensure that you've added and tested
-functionality for Users' `firstName` and `lastName` properties.
+Table Bookings {
+  id integer pk
+  userId integer [ref: > Users.id]
+  spotId integer [ref: > Spots.id]
+  startTime date
+  endTime date
+  }
 
-## Kanban Cards
+Table SpotImages {
+  id integer pk
+  spotId integer [ref: > Spots.id]
+  image varchar
+  isPreview boolean
+  }
 
-Copy each of the following sections into its own card on a Kanban board for the
-project. GitHub Kanban boards use markdown formatting, allowing these sections
-to be copied directly:
+Table ReviewImages {
+  id integer pk
+  reviewId integer [ref: > Reviews.id]
+  image varchar
+  }`
 
+## API Documentation
 
-### Authentication Required
+## USER AUTHENTICATION/AUTHORIZATION
 
-All endpoints that require a current user to be logged in receive a standard
-authentication response.
+### All endpoints that require authentication
 
-- [ ] Authentication middleware responds with error status 401 when
-  authentication is not provided
+All endpoints that require a current user to be logged in.
 
+* Request: endpoints that require authentication
+* Error Response: Require authentication
+  * Status Code: 401
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-### Authorization Required
+    ```json
+    {
+      "message": "Authentication required"
+    }
+    ```
 
-All endpoints that require a current user to have the correct role(s) or
-permission(s) receive a standard authorization response.
+### All endpoints that require proper authorization
 
-- [ ] Authorization middleware responds with error status 403 when
-  an authenticated user does not have the correct role(s) or permission(s)
+All endpoints that require authentication and the current user does not have the
+correct role(s) or permission(s).
 
+* Request: endpoints that require proper authorization
+* Error Response: Require proper authorization
+  * Status Code: 403
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-### Sign Up a User (Feature 0)
+    ```json
+    {
+      "message": "Forbidden"
+    }
+    ```
 
-Creates a new user, logs them in as the current user, and returns the current
-user's information.
+### Get the Current User
 
-- [ ] New user exists in the database after request
-- [ ] Successful response includes newly created `id`, `firstName`, `lastName`,
-  and `email`
-- [ ] Error response with status 500 is given when the specified email or username
-  already exists
-- [ ] Error response with status 400 is given when body validations for the
-  `email`, `firstName`, or `lastName` are violated
+Returns the information about the current user that is logged in.
 
+* Require Authentication: false
+* Request
+  * Method: GET
+  * URL: /user/current
+  * Body: none
 
-### Log In a User (Feature 0)
+* Successful Response when there is a logged in user
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "user": {
+        "id": 1,
+        "firstName": "John",
+        "lastName": "Smith",
+        "email": "john.smith@gmail.com",
+        "username": "JohnSmith"
+      }
+    }
+    ```
+
+* Successful Response when there is no logged in user
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "user": null
+    }
+    ```
+
+### Log In a User
 
 Logs in a current user with valid credentials and returns the current user's
 information.
 
-- [ ] Successful response includes the user's `id`, `firstName`, `lastName`,
-  and `email`
-- [ ] Error response with status 401 is given when invalid credentials are given
-- [ ] Error response with status 400 is given when body validations for the
-  `email`, `firstName`, or `lastName` are violated
+* Require Authentication: false
+* Request
+  * Method: POST
+  * URL: /session
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
+    ```json
+    {
+      "credential": "john.smith@gmail.com",
+      "password": "secret password"
+    }
+    ```
 
-### Get the Current User (Feature 0)
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-Returns the information about the current user that is logged in.
+    ```json
+    {
+      "user": {
+        "id": 1,
+        "firstName": "John",
+        "lastName": "Smith",
+        "email": "john.smith@gmail.com",
+        "username": "JohnSmith"
+      }
+    }
+    ```
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Successful response includes the user's `id`, `firstName`, `lastName`,
-  and `email`
+* Error Response: Invalid credentials
+  * Status Code: 401
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
+    ```json
+    {
+      "message": "Invalid credentials"
+    }
+    ```
+
+* Error response: Body validation errors
+  * Status Code: 400
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Bad Request", // (or "Validation error" if generated by Sequelize),
+      "errors": {
+        "credential": "Email or username is required",
+        "password": "Password is required"
+      }
+    }
+    ```
+
+### Sign Up a User
+
+Creates a new user, logs them in as the current user, and returns the current
+user's information.
+
+* Require Authentication: false
+* Request
+  * Method: POST
+  * URL: /user/signup
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "firstName": "John",
+      "lastName": "Smith",
+      "email": "john.smith@gmail.com",
+      "username": "JohnSmith",
+      "password": "secret password"
+    }
+    ```
+
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "user": {
+        "id": 1,
+        "firstName": "John",
+        "lastName": "Smith",
+        "email": "john.smith@gmail.com",
+        "username": "JohnSmith"
+      }
+    }
+    ```
+
+* Error response: User already exists with the specified email
+  * Status Code: 500
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "User already exists",
+      "errors": {
+        "email": "User with that email already exists"
+      }
+    }
+    ```
+
+* Error response: User already exists with the specified username
+  * Status Code: 500
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "User already exists",
+      "errors": {
+        "username": "User with that username already exists"
+      }
+    }
+    ```
+
+* Error response: Body validation errors
+  * Status Code: 400
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Bad Request", // (or "Validation error" if generated by Sequelize),
+      "errors": {
+        "email": "Invalid email",
+        "username": "Username is required",
+        "firstName": "First Name is required",
+        "lastName": "Last Name is required"
+      }
+    }
+    ```
+
+## SPOTS
 
 ### Get all Spots
 
 Returns all the spots.
 
-- [ ] Seed data exists in the database for spots to be returned.
-- [ ] Successful response includes each spot in the database.
-- [ ] Spot data returned includes the `id`, `ownerId`, `address`, `city`,
-  `state`, `country`, `lat`, `lng`, `name`, `description`, `price`, `createdAt`,
-  `updatedAt`, `previewImage`, and `avgRating`
+* Require Authentication: false
+* Request
+  * Method: GET
+  * URL: /spots
+  * Body: none
 
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-### Create a Spot
-
-Creates and returns a new spot.
-
-- [ ] An authenticated user is required for a successful response
-- [ ] New spot exists in the database after request
-- [ ] Spot data returned includes the `id`, `ownerId`, `address`, `city`,
-  `state`, `country`, `lat`, `lng`, `name`, `description`, `price`, `createdAt`,
-  and `updatedAt`
-- [ ] Error response with status 400 is given when body validations for the
-  `address`, `city`, `state`, `country`, `lat`, `lng`, `name`, `description`, or `price` are violated
-
-
-### Add an Image to a Spot based on the Spot's id
-
-Create and return a new image for a spot specified by id.
-
-- [ ] An authenticated user is required for a successful response
-- [ ] Only the owner of the spot is authorized to add an image
-- [ ] New image exists in the database after request
-- [ ] Image data returned includes the `id`, `url`, and `preview`
-- [ ] Error response with status 404 is given when a spot does not exist with
-  the provided `id`
-
+    ```json
+    {
+      "Spots": [
+        {
+          "id": 1,
+          "ownerId": 1,
+          "address": "123 Disney Lane",
+          "city": "San Francisco",
+          "state": "California",
+          "country": "United States of America",
+          "lat": 37.7645358,
+          "lng": -122.4730327,
+          "name": "App Academy",
+          "description": "Place where web developers are created",
+          "price": 123,
+          "createdAt": "2021-11-19 20:39:36",
+          "updatedAt": "2021-11-19 20:39:36",
+          "avgRating": 4.5,
+          "previewImage": "image url"
+        }
+      ]
+    }
+    ```
 
 ### Get all Spots owned by the Current User
 
 Returns all the spots owned (created) by the current user.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Successful response includes only spots created by the current user
-- [ ] Spot data returned includes the `id`, `ownerId`, `address`, `city`,
-  `state`, `country`, `lat`, `lng`, `name`, `description`, `price`, `createdAt`,
-  `updatedAt`, `previewImage`, and `avgRating`
+* Require Authentication: true
+* Request
+  * Method: GET
+  * URL: /spots/current
+  * Body: none
 
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-### Get details for a Spot from an id
+    ```json
+    {
+      "Spots": [
+        {
+          "id": 1,
+          "ownerId": 1,
+          "address": "123 Disney Lane",
+          "city": "San Francisco",
+          "state": "California",
+          "country": "United States of America",
+          "lat": 37.7645358,
+          "lng": -122.4730327,
+          "name": "App Academy",
+          "description": "Place where web developers are created",
+          "price": 123,
+          "createdAt": "2021-11-19 20:39:36",
+          "updatedAt": "2021-11-19 20:39:36",
+          "avgRating": 4.5,
+          "previewImage": "image url"
+        }
+      ]
+    }
+    ```
+
+### Get details of a Spot from an id
 
 Returns the details of a spot specified by its id.
 
-- [ ] Successful response includes data only for the specified spot
-- [ ] Spot data returned includes the `id`, `ownerId`, `address`, `city`,
-  `state`, `country`, `lat`, `lng`, `name`, `description`, `price`, `createdAt`,
-  and `updatedAt`
-- [ ] Spot data returns aggregate data for `numReviews` and `avgStarRating`
-- [ ] Spot data returns associated data for `SpotImages`, an array of image
-  data including the `id`, `url`, and `preview`
-- [ ] Spot data returns associated data for `Owner`, including the `id`,
-  `firstName`, and `lastName`
-- [ ] Error response with status 404 is given when a spot does not exist with
-  the provided `id`
+* Require Authentication: false
+* Request
+  * Method: GET
+  * URL: /spots/:spotId
+  * Body: none
 
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "id": 1,
+      "ownerId": 1,
+      "address": "123 Disney Lane",
+      "city": "San Francisco",
+      "state": "California",
+      "country": "United States of America",
+      "lat": 37.7645358,
+      "lng": -122.4730327,
+      "name": "App Academy",
+      "description": "Place where web developers are created",
+      "price": 123,
+      "createdAt": "2021-11-19 20:39:36",
+      "updatedAt": "2021-11-19 20:39:36" ,
+      "numReviews": 5,
+      "avgStarRating": 4.5,
+      "SpotImages": [
+        {
+          "id": 1,
+          "url": "image url",
+          "preview": true
+        },
+        {
+          "id": 2,
+          "url": "image url",
+          "preview": false
+        }
+      ],
+      "Owner": {
+        "id": 1,
+        "firstName": "John",
+        "lastName": "Smith"
+      }
+    }
+    ```
+
+* Error response: Couldn't find a Spot with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Spot couldn't be found"
+    }
+    ```
+
+### Create a Spot
+
+Creates and returns a new spot.
+
+* Require Authentication: true
+* Request
+  * Method: POST
+  * URL: /spots
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "address": "123 Disney Lane",
+      "city": "San Francisco",
+      "state": "California",
+      "country": "United States of America",
+      "lat": 37.7645358,
+      "lng": -122.4730327,
+      "name": "App Academy",
+      "description": "Place where web developers are created",
+      "price": 123
+    }
+    ```
+
+* Successful Response
+  * Status Code: 201
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "id": 1,
+      "ownerId": 1,
+      "address": "123 Disney Lane",
+      "city": "San Francisco",
+      "state": "California",
+      "country": "United States of America",
+      "lat": 37.7645358,
+      "lng": -122.4730327,
+      "name": "App Academy",
+      "description": "Place where web developers are created",
+      "price": 123,
+      "createdAt": "2021-11-19 20:39:36",
+      "updatedAt": "2021-11-19 20:39:36"
+    }
+    ```
+
+* Error Response: Body validation errors
+  * Status Code: 400
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Bad Request", // (or "Validation error" if generated by Sequelize),
+      "errors": {
+        "address": "Street address is required",
+        "city": "City is required",
+        "state": "State is required",
+        "country": "Country is required",
+        "lat": "Latitude must be within -90 and 90",
+        "lng": "Longitude must be within -180 and 180",
+        "name": "Name must be less than 50 characters",
+        "description": "Description is required",
+        "price": "Price per day must be a positive number"
+      }
+    }
+    ```
+
+### Add an Image to a Spot based on the Spot's id
+
+Create and return a new image for a spot specified by id.
+
+* Require Authentication: true
+* Require proper authorization: Spot must belong to the current user
+* Request
+  * Method: POST
+  * URL: /spots/:spotId/images
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "url": "image url",
+      "preview": true
+    }
+    ```
+
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "id": 1,
+      "url": "image url",
+      "preview": true
+    }
+    ```
+
+* Error response: Couldn't find a Spot with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Spot couldn't be found"
+    }
+    ```
 
 ### Edit a Spot
 
 Updates and returns an existing spot.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Only the owner of the spot is authorized to edit
-- [ ] Spot record is updated in the database after request
-- [ ] Spot data returned includes the `id`, `ownerId`, `address`, `city`,
-  `state`, `country`, `lat`, `lng`, `name`, `description`, `price`, `createdAt`,
-  and `updatedAt`
-- [ ] Error response with status 400 is given when body validations for the
-  `address`, `city`, `state`, `country`, `lat`, `lng`, `name`, `description`, or `price` are violated
-- [ ] Error response with status 404 is given when a spot does not exist with
-  the provided `id`
+* Require Authentication: true
+* Require proper authorization: Spot must belong to the current user
+* Request
+  * Method: PUT
+  * URL: /spots/:spotId
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
+    ```json
+    {
+      "address": "123 Disney Lane",
+      "city": "San Francisco",
+      "state": "California",
+      "country": "United States of America",
+      "lat": 37.7645358,
+      "lng": -122.4730327,
+      "name": "App Academy",
+      "description": "Place where web developers are created",
+      "price": 123
+    }
+    ```
+
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "id": 1,
+      "ownerId": 1,
+      "address": "123 Disney Lane",
+      "city": "San Francisco",
+      "state": "California",
+      "country": "United States of America",
+      "lat": 37.7645358,
+      "lng": -122.4730327,
+      "name": "App Academy",
+      "description": "Place where web developers are created",
+      "price": 123,
+      "createdAt": "2021-11-19 20:39:36",
+      "updatedAt": "2021-11-20 10:06:40"
+    }
+    ```
+
+* Error Response: Body validation errors
+  * Status Code: 400
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Bad Request", // (or "Validation error" if generated by Sequelize),
+      "errors": {
+        "address": "Street address is required",
+        "city": "City is required",
+        "state": "State is required",
+        "country": "Country is required",
+        "lat": "Latitude must be within -90 and 90",
+        "lng": "Longitude must be within -180 and 180",
+        "name": "Name must be less than 50 characters",
+        "description": "Description is required",
+        "price": "Price per day must be a positive number"
+      }
+    }
+    ```
+
+* Error response: Couldn't find a Spot with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Spot couldn't be found"
+    }
+    ```
 
 ### Delete a Spot
 
 Deletes an existing spot.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Only the owner of the spot is authorized to delete
-- [ ] Spot record is removed from the database after request
-- [ ] Success response includes a `message` indicating a successful deletion
-- [ ] Error response with status 404 is given when a spot does not exist with
-  the provided `id`
+* Require Authentication: true
+* Require proper authorization: Spot must belong to the current user
+* Request
+  * Method: DELETE
+  * URL: /spots/:spotId
+  * Body: none
 
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-### Create a Review for a Spot based on the Spot's id
+    ```json
+    {
+      "message": "Successfully deleted"
+    }
+    ```
 
-Create and return a new review for a spot specified by id.
+* Error response: Couldn't find a Spot with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-- [ ] An authenticated user is required for a successful response
-- [ ] New review exists in the database after request
-- [ ] Review data returned includes the `id`, `userId`, `spotId`, `review`,
-  `stars`, `createdAt`, and `updatedAt`
-- [ ] Error response with status 400 is given when body validations for the
-  `review` or `stars` are violated
-- [ ] Error response with status 404 is given when a spot does not exist with
-  the provided `id`
-- [ ] Error response with status 403 is given when a review already exists for
-  the spot from the current user
+    ```json
+    {
+      "message": "Spot couldn't be found"
+    }
+    ```
 
-
-### Add an Image to a Review based on the Review's id
-
-Create and return a new image for a review specified by id.
-
-- [ ] An authenticated user is required for a successful response
-- [ ] Only the owner of the review is authorized to add an image
-- [ ] New image exists in the database after request
-- [ ] Image data returned includes the `id` and `url`
-- [ ] Error response with status 404 is given when a review does not exist with
-  the provided `id`
-- [ ] Error response with status 403 is given when the maximum number of images
-  have been added for the review
-
+## REVIEWS
 
 ### Get all Reviews of the Current User
 
 Returns all the reviews written by the current user.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Successful response includes only reviews created by the current user
-- [ ] Review data returned includes the `id`, `userId`, `spotId`, `review`,
-  `stars`, `createdAt`, and `updatedAt`
-- [ ] Review data returns associated data for `User`, including the `id`,
-  `firstName`, and `lastName`
-- [ ] Review data returns associated data for `Spot`, including the `id`,
-  `ownerId`, `address`, `city`, `state`, `country`, `lat`, `lng`, `name`,
-  `price`, and `previewImage`
-- [ ] Review data returns associated data for `ReviewImages`, an array of image
-  data including the `id` and `url`
+* Require Authentication: true
+* Request
+  * Method: GET
+  * URL: /reviews/current
+  * Body: none
 
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "Reviews": [
+        {
+          "id": 1,
+          "userId": 1,
+          "spotId": 1,
+          "review": "This was an awesome spot!",
+          "stars": 5,
+          "createdAt": "2021-11-19 20:39:36",
+          "updatedAt": "2021-11-19 20:39:36" ,
+          "User": {
+            "id": 1,
+            "firstName": "John",
+            "lastName": "Smith"
+          },
+          "Spot": {
+            "id": 1,
+            "ownerId": 1,
+            "address": "123 Disney Lane",
+            "city": "San Francisco",
+            "state": "California",
+            "country": "United States of America",
+            "lat": 37.7645358,
+            "lng": -122.4730327,
+            "name": "App Academy",
+            "price": 123,
+            "previewImage": "image url"
+          },
+          "ReviewImages": [
+            {
+              "id": 1,
+              "url": "image url"
+            }
+          ]
+        }
+      ]
+    }
+    ```
 
 ### Get all Reviews by a Spot's id
 
 Returns all the reviews that belong to a spot specified by id.
 
-- [ ] Seed data exists in the database for reviews to be returned.
-- [ ] Successful response includes only reviews for the specified spot
-- [ ] Review data returned includes the `id`, `userId`, `spotId`, `review`,
-  `stars`, `createdAt`, and `updatedAt`
-- [ ] Review data returns associated data for `User`, including the `id`,
-  `firstName`, and `lastName`
-- [ ] Review data returns associated data for `ReviewImages`, an array of image
-  data including the `id` and `url`
-- [ ] Error response with status 404 is given when a spot does not exist with
-  the provided `id`
+* Require Authentication: false
+* Request
+  * Method: GET
+  * URL: /reviews/:spotId
+  * Body: none
 
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "Reviews": [
+        {
+          "id": 1,
+          "userId": 1,
+          "spotId": 1,
+          "review": "This was an awesome spot!",
+          "stars": 5,
+          "createdAt": "2021-11-19 20:39:36",
+          "updatedAt": "2021-11-19 20:39:36" ,
+          "User": {
+            "id": 1,
+            "firstName": "John",
+            "lastName": "Smith"
+          },
+          "ReviewImages": [
+            {
+              "id": 1,
+              "url": "image url"
+            }
+          ],
+        }
+      ]
+    }
+    ```
+
+* Error response: Couldn't find a Spot with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Spot couldn't be found"
+    }
+    ```
+
+### Create a Review for a Spot based on the Spot's id
+
+Create and return a new review for a spot specified by id.
+
+* Require Authentication: true
+* Request
+  * Method: POST
+  * URL: /reviews/:spotId
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "review": "This was an awesome spot!",
+      "stars": 5,
+    }
+    ```
+
+* Successful Response
+  * Status Code: 201
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "id": 1,
+      "userId": 1,
+      "spotId": 1,
+      "review": "This was an awesome spot!",
+      "stars": 5,
+      "createdAt": "2021-11-19 20:39:36",
+      "updatedAt": "2021-11-19 20:39:36"
+    }
+    ```
+
+* Error Response: Body validation errors
+  * Status Code: 400
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Bad Request", // (or "Validation error" if generated by Sequelize),
+      "errors": {
+        "review": "Review text is required",
+        "stars": "Stars must be an integer from 1 to 5",
+      }
+    }
+    ```
+
+* Error response: Couldn't find a Spot with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Spot couldn't be found"
+    }
+    ```
+
+* Error response: Review from the current user already exists for the Spot
+  * Status Code: 500
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "User already has a review for this spot"
+    }
+    ```
+
+### Add an Image to a Review based on the Review's id
+
+Create and return a new image for a review specified by id.
+
+* Require Authentication: true
+* Require proper authorization: Review must belong to the current user
+* Request
+  * Method: POST
+  * URL: /reviews/:reviewId/images
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "url": "image url"
+    }
+    ```
+
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "id": 1,
+      "url": "image url"
+    }
+    ```
+
+* Error response: Couldn't find a Review with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Review couldn't be found"
+    }
+    ```
+
+* Error response: Cannot add any more images because there is a maximum of 10
+  images per resource
+  * Status Code: 403
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Maximum number of images for this resource was reached"
+    }
+    ```
 
 ### Edit a Review
 
 Update and return an existing review.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Only the owner of the review is authorized to edit
-- [ ] Review record is updated in the database after request
-- [ ] Review data returned includes the `id`, `userId`, `spotId`, `review`,
-  `stars`, `createdAt`, and `updatedAt`
-- [ ] Error response with status 400 is given when body validations for the
-  `review`, or `stars` are violated
-- [ ] Error response with status 404 is given when a review does not exist with
-  the provided `id`
+* Require Authentication: true
+* Require proper authorization: Review must belong to the current user
+* Request
+  * Method: PUT
+  * URL: /reviews/:reviewId
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
+    ```json
+    {
+      "review": "This was an awesome spot!",
+      "stars": 5,
+    }
+    ```
+
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "id": 1,
+      "userId": 1,
+      "spotId": 1,
+      "review": "This was an awesome spot!",
+      "stars": 5,
+      "createdAt": "2021-11-19 20:39:36",
+      "updatedAt": "2021-11-20 10:06:40"
+    }
+    ```
+
+* Error Response: Body validation errors
+  * Status Code: 400
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Bad Request", // (or "Validation error" if generated by Sequelize),
+      "errors": {
+        "review": "Review text is required",
+        "stars": "Stars must be an integer from 1 to 5",
+      }
+    }
+    ```
+
+* Error response: Couldn't find a Review with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Review couldn't be found"
+    }
+    ```
 
 ### Delete a Review
 
 Delete an existing review.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Only the owner of the review is authorized to delete
-- [ ] Review record is removed from the database after request
-- [ ] Success response includes a `message` indicating a successful deletion
-- [ ] Error response with status 404 is given when a spot does not exist with
-  the provided `id`
+* Require Authentication: true
+* Require proper authorization: Review must belong to the current user
+* Request
+  * Method: DELETE
+  * URL: /reviews/:reviewId
+  * Body: none
 
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-### Create a Booking from a Spot based on the Spot's id
+    ```json
+    {
+      "message": "Successfully deleted"
+    }
+    ```
 
-Create and return a new booking from a spot specified by id.
+* Error response: Couldn't find a Review with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-- [ ] An authenticated user is required for a successful response
-- [ ] A user is only authorized to create a booking if they do NOT own the spot
-- [ ] New booking exists in the database after request
-- [ ] Booking data returned includes the `id`, `userId`, `spotId`, `startDate`,
-  `endDate`, `createdAt`, and `updatedAt`
-- [ ] Error response with status 404 is given when a spot does not exist with
-  the provided `id`
-- [ ] Error response with status 403 is given when a booking already exists for
-  the spot on the specified dates
+    ```json
+    {
+      "message": "Review couldn't be found"
+    }
+    ```
 
+## BOOKINGS
 
 ### Get all of the Current User's Bookings
 
 Return all the bookings that the current user has made.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Successful response includes only bookings created by the current user
-- [ ] Booking data returned includes the `id`, `spotId`, `userId`, `startDate`,
-  `endDate`, `createdAt`, and `updatedAt`
-- [ ] Booking data returns associated data for `Spot`, including the `id`,
-  `ownerId`, `address`, `city`, `state`, `country`, `lat`, `lng`, `name`,
-  `price` and `previewImage`
+* Require Authentication: true
+* Request
+  * Method: GET
+  * URL: /bookings/current
+  * Body: none
 
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "Bookings": [
+        {
+          "id": 1,
+          "spotId": 1,
+          "Spot": {
+            "id": 1,
+            "ownerId": 1,
+            "address": "123 Disney Lane",
+            "city": "San Francisco",
+            "state": "California",
+            "country": "United States of America",
+            "lat": 37.7645358,
+            "lng": -122.4730327,
+            "name": "App Academy",
+            "price": 123,
+            "previewImage": "image url"
+          },
+          "userId": 2,
+          "startDate": "2021-11-19",
+          "endDate": "2021-11-20",
+          "createdAt": "2021-11-19 20:39:36",
+          "updatedAt": "2021-11-19 20:39:36"
+        }
+      ]
+    }
+    ```
 
 ### Get all Bookings for a Spot based on the Spot's id
 
 Return all the bookings for a spot specified by id.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Seed data exists in the database for bookings to be returned.
-- [ ] Successful response includes only bookings for the specified spot
-- [ ] If you are NOT the owner of the spot, booking data returned includes the
-  `spotId`, `startDate`, and `endDate` for each booking
-- [ ] If you ARE the owner of the spot, booking data returned includes the `id`
-  `spotId`, `userId`, `startDate`, `endDate`, `createdAt`, and `updatedAt` for
-  each booking
-- [ ] If you ARE the owner of the spot, booking data returns associated data for
-  `User`, including the `id`, `firstName`, and `lastName`
-- [ ] Error response with status 404 is given when a spot does not exist with
-  the provided `id`
+* Require Authentication: true
+* Request
+  * Method: GET
+  * URL: /bookings/:spotId
+  * Body: none
 
+* Successful Response: If you ARE NOT the owner of the spot.
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "Bookings": [
+        {
+          "spotId": 1,
+          "startDate": "2021-11-19",
+          "endDate": "2021-11-20"
+        }
+      ]
+    }
+    ```
+
+* Successful Response: If you ARE the owner of the spot.
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "Bookings": [
+        {
+          "User": {
+            "id": 2,
+            "firstName": "John",
+            "lastName": "Smith"
+          },
+          "id": 1,
+          "spotId": 1,
+          "userId": 2,
+          "startDate": "2021-11-19",
+          "endDate": "2021-11-20",
+          "createdAt": "2021-11-19 20:39:36",
+          "updatedAt": "2021-11-19 20:39:36"
+        }
+      ]
+    }
+    ```
+
+* Error response: Couldn't find a Spot with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Spot couldn't be found"
+    }
+    ```
+
+### Create a Booking from a Spot based on the Spot's id
+
+Create and return a new booking from a spot specified by id.
+
+* Require Authentication: true
+* Require proper authorization: Spot must NOT belong to the current user
+* Request
+  * Method: POST
+  * URL: /bookings/:spotId
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "startDate": "2021-11-19",
+      "endDate": "2021-11-20"
+    }
+    ```
+
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "id": 1,
+      "spotId": 1,
+      "userId": 2,
+      "startDate": "2021-11-19",
+      "endDate": "2021-11-20",
+      "createdAt": "2021-11-19 20:39:36",
+      "updatedAt": "2021-11-19 20:39:36"
+    }
+    ```
+
+* Error response: Body validation errors
+  * Status Code: 400
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Bad Request", // (or "Validation error" if generated by Sequelize),
+      "errors": {
+        "startDate": "startDate cannot be in the past",
+        "endDate": "endDate cannot be on or before startDate"
+      }
+    }
+    ```
+
+* Error response: Couldn't find a Spot with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Spot couldn't be found"
+    }
+    ```
+
+* Error response: Booking conflict
+  * Status Code: 403
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Sorry, this spot is already booked for the specified dates",
+      "errors": {
+        "startDate": "Start date conflicts with an existing booking",
+        "endDate": "End date conflicts with an existing booking"
+      }
+    }
+    ```
 
 ### Edit a Booking
 
 Update and return an existing booking.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Only the owner of the booking is authorized to edit
-- [ ] Booking record is updated in the database after request
-- [ ] Booking data returned includes the `id`, `userId`, `spotId`, `startDate`,
-  `endDate`, `createdAt`, and `updatedAt`
-- [ ] Error response with status 404 is given when a booking does not exist with
-  the provided `id`
-- [ ] Error response with status 400 is given when it is past the booking's
-  `endDate` (no editing of past bookings)
-- [ ] Error response with status 403 is given when a booking already exists for
-  the spot on the specified dates
+* Require Authentication: true
+* Require proper authorization: Booking must belong to the current user
+* Request
+  * Method: PUT
+  * URL: /bookings/:bookingId
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
+    ```json
+    {
+      "startDate": "2021-11-19",
+      "endDate": "2021-11-20"
+    }
+    ```
+
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "id": 1,
+      "spotId": 1,
+      "userId": 2,
+      "startDate": "2021-11-19",
+      "endDate": "2021-11-20",
+      "createdAt": "2021-11-19 20:39:36",
+      "updatedAt": "2021-11-20 10:06:40"
+    }
+    ```
+
+* Error response: Body validation errors
+  * Status Code: 400
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Bad Request", // (or "Validation error" if generated by Sequelize),
+      "errors": {
+        "startDate": "startDate cannot be in the past",
+        "endDate": "endDate cannot be on or before startDate"
+      }
+    }
+    ```
+
+* Error response: Couldn't find a Booking with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Booking couldn't be found"
+    }
+    ```
+
+* Error response: Can't edit a booking that's past the end date
+  * Status Code: 403
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Past bookings can't be modified"
+    }
+    ```
+
+* Error response: Booking conflict
+  * Status Code: 403
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Sorry, this spot is already booked for the specified dates",
+      "errors": {
+        "startDate": "Start date conflicts with an existing booking",
+        "endDate": "End date conflicts with an existing booking"
+      }
+    }
+    ```
 
 ### Delete a Booking
 
 Delete an existing booking.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Only the owner of the booking or the owner of the spot is authorized to
-  delete the booking
-- [ ] Booking record is removed from the database after request
-- [ ] Success response includes a `message` indicating a successful deletion
-- [ ] Error response with status 404 is given when a spot does not exist with
-  the provided `id`
-- [ ] Error response with status 400 is given when it is past the booking's
-  `startDate` (no deleting of current or past bookings)
+* Require Authentication: true
+* Require proper authorization: Booking must belong to the current user or the
+  Spot must belong to the current user
+* Request
+  * Method: DELETE
+  * URL: /bookings/:bookingId
+  * Body: none
 
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-### Delete an Image for a Spot
+    ```json
+    {
+      "message": "Successfully deleted"
+    }
+    ```
+
+* Error response: Couldn't find a Booking with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Booking couldn't be found"
+    }
+    ```
+
+* Error response: Bookings that have been started can't be deleted
+  * Status Code: 403
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Bookings that have been started can't be deleted"
+    }
+    ```
+
+## IMAGES
+
+### Delete a Spot Image
 
 Delete an existing image for a Spot.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Only the owner of the spot is authorized to delete
-- [ ] Image record is removed from the database after request
-- [ ] Success response includes a `message` indicating a successful deletion
-- [ ] Error response with status 404 is given when a spot image does not exist
-  with the provided `id`
+* Require Authentication: true
+* Require proper authorization: Spot must belong to the current user
+* Request
+  * Method: DELETE
+  * URL: /spots/:spotId/images/:imageId
+  * Body: none
 
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-### Delete an Image for a Review
+    ```json
+    {
+      "message": "Successfully deleted"
+    }
+    ```
+
+* Error response: Couldn't find a Spot Image with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Spot Image couldn't be found"
+    }
+    ```
+
+### Delete a Review Image
 
 Delete an existing image for a Review.
 
-- [ ] An authenticated user is required for a successful response
-- [ ] Only the owner of the review is authorized to delete
-- [ ] Image record is removed from the database after request
-- [ ] Success response includes a `message` indicating a successful deletion
-- [ ] Error response with status 404 is given when a review image does not exist
-  with the provided `id`
+* Require Authentication: true
+* Require proper authorization: Review must belong to the current user
+* Request
+  * Method: DELETE
+  * URL: /reviews/:reviewId/images/:imageId
+  * Body: none
 
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
 
-### Add Query Filters to Get All Spots
+    ```json
+    {
+      "message": "Successfully deleted"
+    }
+    ```
+
+* Error response: Couldn't find a Review Image with the specified id
+  * Status Code: 404
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Review Image couldn't be found"
+    }
+    ```
+
+## Add Query Filters to Get All Spots
 
 Return spots filtered by query parameters.
 
-- [ ] Query parameters are accepted for `page`, `size`, `minLat`, `maxLat`,
-  `minLng`, `maxLng`, `minPrice`, and `maxPrice`
-- [ ] Default values are provided for the `page` and `size` parameters
-- [ ] Successful response includes only spots in the database that meet the
-  specified query parameters criteria.
-- [ ] Spot data returned includes the `id`, `ownerId`, `address`, `city`,
-  `state`, `country`, `lat`, `lng`, `name`, `description`, `price`, `createdAt`,
-  `updatedAt`, and `previewImage` for each spot
-- [ ] Successful response includes the `page` and `size` of the returned payload
-- [ ] Error response with status 400 is given when query parameter validations
-  for the `page`, `size`, `minLat`, `maxLat`, `minLng`, `maxLng`, `minPrice`, or
-  `maxPrice` are violated
+* Require Authentication: false
+* Request
+  * Method: GET
+  * URL: /spots?{filters}
+  * Query Parameters
+    * page: integer, minimum: 1, default: 1
+    * size: integer, minimum: 1, maximum: 20, default: 20
+    * minLat: decimal, optional
+    * maxLat: decimal, optional
+    * minLng: decimal, optional
+    * maxLng: decimal, optional
+    * minPrice: decimal, optional, minimum: 0
+    * maxPrice: decimal, optional, minimum: 0
+  * Body: none
+
+* Successful Response
+  * Status Code: 200
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "Spots": [
+        {
+          "id": 1,
+          "ownerId": 1,
+          "address": "123 Disney Lane",
+          "city": "San Francisco",
+          "state": "California",
+          "country": "United States of America",
+          "lat": 37.7645358,
+          "lng": -122.4730327,
+          "name": "App Academy",
+          "description": "Place where web developers are created",
+          "price": 123,
+          "createdAt": "2021-11-19 20:39:36",
+          "updatedAt": "2021-11-19 20:39:36",
+          "avgRating": 4.5,
+          "previewImage": "image url"
+        }
+      ],
+      "page": 2,
+      "size": 20
+    }
+    ```
+
+* Error Response: Query parameter validation errors
+  * Status Code: 400
+  * Headers:
+    * Content-Type: application/json
+  * Body:
+
+    ```json
+    {
+      "message": "Bad Request", // (or "Validation error" if generated by Sequelize),
+      "errors": {
+        "page": "Page must be greater than or equal to 1",
+        "size": "Size must be between 1 and 20",
+        "maxLat": "Maximum latitude is invalid",
+        "minLat": "Minimum latitude is invalid",
+        "minLng": "Maximum longitude is invalid",
+        "maxLng": "Minimum longitude is invalid",
+        "minPrice": "Minimum price must be greater than or equal to 0",
+        "maxPrice": "Maximum price must be greater than or equal to 0"
+      }
+    }
+    ```
