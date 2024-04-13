@@ -4,7 +4,7 @@
 ![Image](./DBairnbn.png)
 `
 Table Spots { id integer pk
-  ownerId integer [Ref: < Users.id]
+  ownerId integer [Ref: > Users.id]
   address varchar
   city varchar
   state varchar
@@ -14,9 +14,6 @@ Table Spots { id integer pk
   name varchar
   description varchar
   price float
-  numReviews integer
-  avgStarRating float
-  previewImage varchar
 }
 
 Table Users {
@@ -30,32 +27,31 @@ Table Users {
 
 Table Reviews {
   id integer pk
-  userId integer [ref: < Users.id]
-  spotId integer [ref: <> Spots.id]
+  userId integer [ref: > Users.id]
+  spotId integer [ref: > Spots.id]
   review varchar
   stars float
   }
 
 Table Bookings {
   id integer pk
-  userId integer [ref: <> Users.id]
-  spotId integer [ref: <> Spots.id]
+  userId integer [ref: > Users.id]
+  spotId integer [ref: > Spots.id]
   startTime date
   endTime date
   }
 
 Table SpotImages {
   id integer pk
-  spotId integer [ref: < Spots.id]
+  spotId integer [ref: > Spots.id]
   image varchar
   isPreview boolean
   }
 
 Table ReviewImages {
   id integer pk
-  reviewId integer [ref: < Reviews.id]
+  reviewId integer [ref: > Reviews.id]
   image varchar
-  isPreview boolean
   }`
 
 ## API Documentation
@@ -341,7 +337,7 @@ Returns all the spots owned (created) by the current user.
 * Require Authentication: true
 * Request
   * Method: GET
-  * URL: /user/spots
+  * URL: /spots/current
   * Body: none
 
 * Successful Response
@@ -688,7 +684,7 @@ Returns all the reviews written by the current user.
 * Require Authentication: true
 * Request
   * Method: GET
-  * URL: /user/reviews
+  * URL: /reviews/current
   * Body: none
 
 * Successful Response
@@ -1036,7 +1032,7 @@ Return all the bookings that the current user has made.
 * Require Authentication: true
 * Request
   * Method: GET
-  * URL: /user/bookings
+  * URL: /bookings/current
   * Body: none
 
 * Successful Response
