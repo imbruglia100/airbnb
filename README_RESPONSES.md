@@ -1,9 +1,9 @@
 # `Airnbn`
 
 ## Database Schema Design
-
-`Table Spots {
-  id integer pk
+![Image](./DBairnbn.png)
+`
+Table Spots { id integer pk
   ownerId integer [Ref: < Users.id]
   address varchar
   city varchar
@@ -25,7 +25,8 @@ Table Users {
   lastName varchar
   email varchar
   username varchar
-}
+  hashedPassword varchar
+  }
 
 Table Reviews {
   id integer pk
@@ -33,7 +34,7 @@ Table Reviews {
   spotId integer [ref: <> Spots.id]
   review varchar
   stars float
-}
+  }
 
 Table Bookings {
   id integer pk
@@ -41,21 +42,21 @@ Table Bookings {
   spotId integer [ref: <> Spots.id]
   startTime date
   endTime date
-}
+  }
 
 Table SpotImages {
   id integer pk
   spotId integer [ref: < Spots.id]
   image varchar
   isPreview boolean
-}
+  }
 
 Table ReviewImages {
   id integer pk
   reviewId integer [ref: < Reviews.id]
   image varchar
   isPreview boolean
-}`
+  }`
 
 ## API Documentation
 
@@ -144,7 +145,7 @@ information.
 * Require Authentication: false
 * Request
   * Method: POST
-  * URL: /user/login
+  * URL: /session
   * Headers:
     * Content-Type: application/json
   * Body:
