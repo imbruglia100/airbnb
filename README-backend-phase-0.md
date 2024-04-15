@@ -13,7 +13,7 @@ for the API project that you are implementing.
 
 Go to your main Slack channel and download the zip file containing the API
 documentation and database schema of your chosen application sent as a pinned
-message by an instructor. 
+message by an instructor.
 
 On your system, create a folder in your system for your Mod 4 portfolio project.
 The name of your folder should be the name of your project.
@@ -35,7 +35,7 @@ add it to the `images` folder in your project directory. Insert the image into
 the database schema placeholder under `'Database Schema Design'` section of your
 `README.md` file using markdown syntax.
 
-The top of your `README.md` file should look something like this: 
+The top of your `README.md` file should look something like this:
 
 ```markdown
 # [title]
@@ -272,6 +272,7 @@ module.exports = {
   }
 };
 ```
+RESUME HERE ++++++++++++
 
 This will allow you to load the database configuration environment variables
 from the `.env` file into the `config/index.js`, as well as define the global schema for the project.
