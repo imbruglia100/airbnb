@@ -54,13 +54,13 @@ router.get('/', async (req, res) => {
     res.json({spots})
 })
 
-// router.post('/', async (req, res) => {
-//     //need to add avgRating and previewImages
-//     const spots = await Spot.findAll()
+router.post('/', async (req, res) => {
+    //need to add avgRating and previewImages
+    const spots = await Spot.findAll()
 
-//     if(!spots)return res.json({message: "No spots avalible"})
+    if(!spots)return res.json({message: "No spots avalible"})
 
-//     res.json({spots})
-// })
+    res.json({spots})
+})
 
 module.exports = router;
