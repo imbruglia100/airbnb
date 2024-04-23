@@ -1,8 +1,52 @@
 const express = require('express');
-const { Spot } = require('../../db/models');
-const { User } = require('../../db/models');
+const { Spot, User, SpotImage } = require('../../db/models');
 
 const router = express.Router()
+
+router.post('/:spotId/images', async (req, res) => {
+    if(!req.user) return res.status(400).json({
+        "message": "Authentication required"
+      })
+    let { spotId } = req.params
+    const { url, preview } = req.body
+
+    spotId = +spotId
+    const spot = await Spot.findOne({
+        where: {
+            id: spotId
+        }
+    })
+
+    if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
+
+    const newImage = await SpotImage.create({
+        spotId,
+        url,
+        preview
+    })
+
+    res.json({newImage})
+})
+
+router.get('/current', async (req, res) => {
+    if(!req.user) return res.status(400).json({
+        "message": "Authentication required"
+      })
+      const ownerId = +req.user.id
+      const where = { ownerId }
+
+    //need to add avgRating
+    const spots = await Spot.findAll({
+        where,
+         include:{
+            model: SpotImage
+        }
+    })
+
+    if(spots.length === 0)return res.json({message: "You have no spots!"})
+
+    res.json({spots})
+})
 
 router.get('/:spotId', async (req, res) => {
     const {spotId} = req.params
@@ -10,10 +54,10 @@ router.get('/:spotId', async (req, res) => {
     if(!spotId)return res.json({message: "No spot selected."})
 
     const where = {id: +spotId}
-    //add numReviews, avgStarRating, spotImages
+    //add numReviews, avgStarRating
     const spots = await Spot.findOne({
         where,
-        include: {
+        include: [{
             model: User,
             as: 'Owner',
             attributes: [
@@ -21,7 +65,9 @@ router.get('/:spotId', async (req, res) => {
                 'firstName',
                 'lastName'
             ]
-        }
+        }, {
+            model: SpotImage
+        }]
     })
 
     if(!spots)return res.json({message: "Spot couldn't be found"})
@@ -29,22 +75,61 @@ router.get('/:spotId', async (req, res) => {
     res.json({spots})
 })
 
-router.get('/current', async (req, res) => {
+router.put('/:spotId', async (req, res) => {
     if(!req.user) return res.status(400).json({
         "message": "Authentication required"
       })
-
-    const where = {ownerId: req.user.id}
-
-    //need to add avgRating and previewImages
-    const spots = await Spot.findAll({
-        where
+    let { spotId } = req.params
+    spotId = +spotId
+    const spot = await Spot.findOne({
+        where: {
+            id: spotId
+        }
     })
 
-    if(!spots)return res.json({message: "You have no spots!"})
+    if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
 
-    res.json({spots})
+    const body = req.body
+    const updatedSpotBody = {
+        address: body.address || spot.address,
+        city: body.city || spot.city,
+        state: body.state || spot.state,
+        country: body.country || spot.country,
+        lat: body.lat || spot.lat,
+        lng: body.lng || spot.lng,
+        name: body.name || spot.name,
+        description: body.description || spot.description,
+        price: body.price || spot.price
+    }
+
+    const updatedSpot = await spot.update(updatedSpotBody)
+
+    res.json({updatedSpot})
 })
+
+router.delete('/:spotId', async (req, res) => {
+    if(!req.user) return res.status(400).json({
+        "message": "Authentication required"
+      })
+    let { spotId } = req.params
+    spotId = +spotId
+    const spot = await Spot.findOne({
+        where: {
+            id: spotId
+        }
+    })
+
+    if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
+
+    await Spot.destroy({
+        where: {
+            id: spotId
+        }
+    })
+
+    res.json({message: "Successfully deleted"})
+})
+
 
 router.get('/', async (req, res) => {
     //need to add avgRating and previewImages
@@ -78,7 +163,7 @@ router.post('/', async (req, res) => {
     if(Object.keys(errors).length > 0){
         return res.status(400).json({message: "Bad Request", errors})
     }
-    
+
     const newSpot = await Spot.create({
         ownerId,
         address,

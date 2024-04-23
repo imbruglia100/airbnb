@@ -45,6 +45,18 @@ module.exports = {
         name: 'Nice house',
         description: 'Great house to rent for the weekend',
         price: 412
+      },
+      {
+        ownerId: 3,
+        address: '126 sdaw st',
+        city: 'Saugus',
+        state: 'MA',
+        country: 'America',
+        lat: 13.123412,
+        lng: -34.51725,
+        name: 'Nice house',
+        description: 'Great house to rent for the weekend',
+        price: 412
       }
     ], { validate: true });
   },
@@ -53,7 +65,7 @@ module.exports = {
     options.tableName = 'Spots';
     const Op = Sequelize.Op;
     return queryInterface.bulkDelete(options, {
-      address: { [Op.in]: ['123 main st', '124 main st', '125 main st'] }
+      address: { [Op.in]: ['123 main st', '124 main st', '125 main st', '126 sdaw st'] }
     }, {});
   }
 };
