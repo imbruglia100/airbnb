@@ -1,6 +1,7 @@
 const express = require('express');
 const { Spot } = require('../../db/models');
-const {User} = require('../../db/models');
+const { User } = require('../../db/models');
+
 const router = express.Router()
 
 router.get('/:spotId', async (req, res) => {
@@ -29,7 +30,7 @@ router.get('/:spotId', async (req, res) => {
 })
 
 router.get('/current', async (req, res) => {
-    if(!req.user) return res.json({
+    if(!req.user) return res.status(400).json({
         "message": "Authentication required"
       })
 
@@ -56,11 +57,42 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
     //need to add avgRating and previewImages
-    const spots = await Spot.findAll()
+    if(!req.user) return res.status(400).json({
+        "message": "Authentication required"
+      })
 
-    if(!spots)return res.json({message: "No spots avalible"})
+    const errors = {}
+    const ownerId = req.user.id
+    const {address, city, state, country, lat, lng, name, description, price} = req.body
 
-    res.json({spots})
+    if(!address || typeof address !== 'string' ) errors.address = "Street address is required"
+    if(!city || typeof city !== 'string' ) errors.city = "City is required"
+    if(!state || typeof state !== 'string' ) errors.state = "State is required"
+    if(!country || typeof country !== 'string' ) errors.country = "Country is required"
+    if(!lat || lat > 90 || lat < -90 ) errors.lat = "Latitude must be within -90 and 90"
+    if(!lng || lng > 180 || lng < -180  ) errors.lng = "Longitude must be within -180 and 180"
+    if(!name || typeof name !== 'string' || name.length > 50 ) errors.name = "Name must be less than 50 characters"
+    if(!description || typeof description !== 'string' ) errors.name = "Description is required"
+    if(!price || price < 0 ) errors.name = "Price per day must be a positive number"
+
+    if(Object.keys(errors).length > 0){
+        return res.status(400).json({message: "Bad Request", errors})
+    }
+    
+    const newSpot = await Spot.create({
+        ownerId,
+        address,
+        city,
+        state,
+        country,
+        lat,
+        lng,
+        name,
+        description,
+        price
+    })
+
+    return res.status(201).json(newSpot)
 })
 
 module.exports = router;
