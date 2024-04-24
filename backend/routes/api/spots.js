@@ -16,7 +16,8 @@ router.post('/:spotId/images', async (req, res) => {
             id: spotId
         }
     })
-
+    if(!spot)return res.status(400).json({error: "Spot does not exist"})
+    
     if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
 
     const newImage = await SpotImage.create({
@@ -55,7 +56,7 @@ router.get('/:spotId', async (req, res) => {
 
     const where = {id: +spotId}
     //add numReviews, avgStarRating
-    const spots = await Spot.findOne({
+    const spot = await Spot.findOne({
         where,
         include: [{
             model: User,
@@ -70,9 +71,9 @@ router.get('/:spotId', async (req, res) => {
         }]
     })
 
-    if(!spots)return res.json({message: "Spot couldn't be found"})
+    if(!spot)return res.json({message: "Spot couldn't be found"})
 
-    res.json({spots})
+    res.json({spot})
 })
 
 router.put('/:spotId', async (req, res) => {
@@ -86,6 +87,8 @@ router.put('/:spotId', async (req, res) => {
             id: spotId
         }
     })
+
+    if(!spot)return res.status(400).json({error: "Spot does not exist"})
 
     if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
 
