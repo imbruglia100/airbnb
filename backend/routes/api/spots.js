@@ -112,15 +112,19 @@ router.delete('/:spotId', async (req, res) => {
         "message": "Authentication required"
       })
     let { spotId } = req.params
-    spotId = +spotId
+    let id = +spotId
     const spot = await Spot.findOne({
         where: {
-            id: spotId
+            id
         }
     })
 
     if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
-
+    await SpotImage.destroy({
+        where: {
+            spotId: id
+        }
+    })
     await Spot.destroy({
         where: {
             id: spotId
