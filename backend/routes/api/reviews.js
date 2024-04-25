@@ -14,6 +14,8 @@ router.post('/:reviewId/images', async (req, res) => {
     if(!url)return res.json('Url cannot be null')
     if(!review)return res.status(404).json("Review couldn't be found")
 
+    if(review.userId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
+
     const imgCount = await ReviewImage.count({
         where: {
             reviewId
@@ -54,7 +56,7 @@ router.get('/current', async (req, res) => {
 })
 
 router.put('/:reviewId', async (req, res) => {
-    if(!req.user) return res.status(400).json({
+    if(!req.user) return res.status(401).json({
         "message": "Authentication required"
       })
     const {review, stars} = req.body
@@ -66,7 +68,7 @@ router.put('/:reviewId', async (req, res) => {
     })
 
     if(!reviewToEdit)return res.status(404).json({message: "Review couldn't be found"})
-    if(reviewToEdit.userId !== +req.user.id)return res.status(400).json({message: 'You are not the owner of the review'})
+    if(reviewToEdit.userId !== +req.user.id)return res.status(403).json({"message": "Forbidden"})
 
     if(!review)return res.status(400).json({errors:{review: "Review text is required"}})
     if(stars > 5 || stars < 1)return res.status(400).json({errors:{review: "Stars must be an integer from 1 to 5"}})
@@ -81,25 +83,28 @@ router.put('/:reviewId', async (req, res) => {
 
 //FOREIGN KEY CONSTRAINT FAILED need to delete all the imgs i think
 router.delete('/:reviewId', async (req, res) => {
-    if(!req.user) return res.status(400).json({
+    if(!req.user) return res.status(401).json({
         "message": "Authentication required"
       })
 
     const reviewId = req.params.reviewId
-    await ReviewImage.destroy({
-        where:{
-            reviewId
-        }
-    })
+
     const reviewToDestroy = await Review.findOne({
         where: {
             id: reviewId
         }
     })
-
+    if(reviewToDestroy.userId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
     if(!reviewToDestroy)return res.status(404).json({message: "Review couldn't be found"})
     if(reviewToDestroy.userId !== +req.user.id)return res.status(400).json({message: 'You are not the owner of the review'})
 
+
+    await ReviewImage.destroy({
+        where:{
+            reviewId
+        }
+    })
+    
     await reviewToDestroy.destroy()
 
     return res.json({"message": "Successfully deleted"})

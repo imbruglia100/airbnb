@@ -25,7 +25,7 @@ router.get('/:spotId/reviews', async (req, res) => {
 })
 
 router.post('/:spotId/reviews', async (req, res) => {
-    if(!req.user) return res.status(400).json({
+    if(!req.user) return res.status(401).json({
         "message": "Authentication required"
       })
 
@@ -53,7 +53,7 @@ router.post('/:spotId/reviews', async (req, res) => {
 })
 
 router.post('/:spotId/images', async (req, res) => {
-    if(!req.user) return res.status(400).json({
+    if(!req.user) return res.status(401).json({
         "message": "Authentication required"
       })
     let { spotId } = req.params
@@ -66,7 +66,7 @@ router.post('/:spotId/images', async (req, res) => {
     })
     if(!spot)return res.status(400).json({error: "Spot does not exist"})
 
-    if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
+    if(spot.ownerId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
 
     const newImage = await SpotImage.create({
         spotId,
@@ -78,7 +78,7 @@ router.post('/:spotId/images', async (req, res) => {
 })
 
 router.get('/current', async (req, res) => {
-    if(!req.user) return res.status(400).json({
+    if(!req.user) return res.status(401).json({
         "message": "Authentication required"
       })
       const ownerId = +req.user.id
@@ -126,7 +126,7 @@ router.get('/:spotId', async (req, res) => {
 })
 
 router.put('/:spotId', async (req, res) => {
-    if(!req.user) return res.status(400).json({
+    if(!req.user) return res.status(401).json({
         "message": "Authentication required"
       })
     let { spotId } = req.params
@@ -139,7 +139,7 @@ router.put('/:spotId', async (req, res) => {
 
     if(!spot)return res.status(404).json({message: "Spot couldn't be found"})
 
-    if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
+    if(spot.ownerId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
 
     const body = req.body
     const updatedSpotBody = {
@@ -160,7 +160,7 @@ router.put('/:spotId', async (req, res) => {
 })
 
 router.delete('/:spotId', async (req, res) => {
-    if(!req.user) return res.status(400).json({
+    if(!req.user) return res.status(401).json({
         "message": "Authentication required"
       })
     let { spotId } = req.params
@@ -171,7 +171,7 @@ router.delete('/:spotId', async (req, res) => {
         }
     })
     if(!spot)return res.status(404).json({message: 'Spot could not be found'})
-    if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
+    if(spot.ownerId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
     await SpotImage.destroy({
         where: {
             spotId: id
@@ -198,7 +198,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
     //need to add avgRating and previewImages
-    if(!req.user) return res.status(400).json({
+    if(!req.user) return res.status(401).json({
         "message": "Authentication required"
       })
 
