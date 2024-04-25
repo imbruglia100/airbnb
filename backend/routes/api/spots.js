@@ -1,7 +1,56 @@
 const express = require('express');
-const { Spot, User, SpotImage } = require('../../db/models');
-
+const { Spot, User, SpotImage, Review } = require('../../db/models');
+const Op = require('sequelize')
 const router = express.Router()
+
+router.get('/:spotId/reviews', async (req, res) => {
+    let spotId = +req.params.spotId
+
+    const spot = await Spot.findOne({
+        where: {
+            id: spotId
+        }
+    })
+    if(!spot)return res.status(404).json({error: "Spot does not exist"})
+
+    const reviews = await Review.findAll({
+        where: {
+            spotId
+        }
+    })
+
+    if(reviews.length === 0)return res.json('There are no reviews :(')
+
+    res.json({reviews})
+})
+
+router.post('/:spotId/reviews', async (req, res) => {
+    if(!req.user) return res.status(400).json({
+        "message": "Authentication required"
+      })
+
+    let spotId = +req.params.spotId
+
+    const {review, stars} = req.body
+
+    const spot = await Spot.findOne({
+        where: {
+            id: spotId
+        }
+    })
+    if(!spot)return res.status(404).json({error: "Spot does not exist"})
+
+    const newReview = await Review.create({
+        userId: +req.user.id,
+        spotId,
+        review,
+        stars
+    })
+
+    await newReview.save()
+
+    res.json({newReview})
+})
 
 router.post('/:spotId/images', async (req, res) => {
     if(!req.user) return res.status(400).json({
@@ -10,14 +59,13 @@ router.post('/:spotId/images', async (req, res) => {
     let { spotId } = req.params
     const { url, preview } = req.body
 
-    spotId = +spotId
     const spot = await Spot.findOne({
         where: {
-            id: spotId
+            id: +spotId
         }
     })
     if(!spot)return res.status(400).json({error: "Spot does not exist"})
-    
+
     if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
 
     const newImage = await SpotImage.create({
@@ -37,6 +85,7 @@ router.get('/current', async (req, res) => {
       const where = { ownerId }
 
     //need to add avgRating
+
     const spots = await Spot.findAll({
         where,
          include:{
@@ -88,7 +137,7 @@ router.put('/:spotId', async (req, res) => {
         }
     })
 
-    if(!spot)return res.status(400).json({error: "Spot does not exist"})
+    if(!spot)return res.status(404).json({message: "Spot couldn't be found"})
 
     if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
 
@@ -121,7 +170,7 @@ router.delete('/:spotId', async (req, res) => {
             id
         }
     })
-
+    if(!spot)return res.status(404).json({message: 'Spot could not be found'})
     if(spot.ownerId !== +req.user.id) return res.status(400).json({message: 'You do not own this spot'})
     await SpotImage.destroy({
         where: {
