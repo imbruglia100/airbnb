@@ -85,10 +85,15 @@ router.delete('/:reviewId', async (req, res) => {
         "message": "Authentication required"
       })
 
-    const { reviewId } = req.params
+    const reviewId = req.params.reviewId
+    await ReviewImage.destroy({
+        where:{
+            reviewId
+        }
+    })
     const reviewToDestroy = await Review.findOne({
         where: {
-            id: +reviewId
+            id: reviewId
         }
     })
 
