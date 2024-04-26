@@ -97,13 +97,6 @@ router.delete('/:reviewId', async (req, res) => {
     if(!reviewToDestroy)return res.status(404).json({message: "Review couldn't be found"})
     if(reviewToDestroy.userId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
 
-
-    await ReviewImage.destroy({
-        where:{
-            reviewId
-        }
-    })
-
     await reviewToDestroy.destroy()
 
     return res.json({"message": "Successfully deleted"})
