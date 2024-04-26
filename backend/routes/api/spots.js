@@ -172,7 +172,11 @@ router.delete('/:spotId', async (req, res) => {
     })
     if(!spot)return res.status(404).json({message: 'Spot could not be found'})
     if(spot.ownerId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
-    
+    await SpotImage.destroy({
+        where: {
+            spotId: id
+        }
+    })
     await Spot.destroy({
         where: {
             id: spotId
