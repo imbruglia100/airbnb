@@ -1,7 +1,67 @@
 const express = require('express');
-const { Spot, User, SpotImage, Review } = require('../../db/models');
-const Sequelize = require('sequelize')
+const { Spot, User, SpotImage, Review, Booking } = require('../../db/models');
+const Sequelize = require('sequelize');
+const { requireAuth } = require('../../utils/auth');
+const { check } = require('express-validator');
+const { handleValidationErrors } = require('../../utils/validation')
+
 const router = express.Router()
+
+router.get('/:spotId/bookings', requireAuth, async (req, res) => {
+    const spotId = +req.params.spotId
+
+    const spot = await Spot.findByPk(spotId)
+
+    let bookings = {}
+
+    if(spot.ownerId === +req.user.id){
+        bookings = await Booking.findAll({
+            where: {
+                spotId
+            },
+            include: User
+        })
+    }else{
+        bookings = await Booking.findAll({
+            where: {
+                spotId
+            },
+            attributes: {
+                exclude: ['userId', 'createdAt', 'updatedAt']
+            }
+        })
+    }
+
+    if(bookings.length === 0) return res.status(404).json({message: "Spot couldn't be found"})
+
+    return res.json({bookings})
+})
+
+router.post('/:spotId/bookings', [
+    requireAuth
+], async (req, res) => {
+    const spotId = +req.params.spotId
+    let errors = {}
+    const { startDate, endDate } = req.body
+
+    if(Date.parse(startDate) > Date.parse(endDate)) errors.endDate = "endDate cannot be on or before startDate"
+
+    if(Date.now() > Date.parse(startDate)) errors.startDate = "startDate cannot be in the past"
+
+    if(Object.keys(errors) > 0)return res.status(400).json({message: 'Bad request', errors})
+
+
+    const spot = await Spot.findByPk(spotId)
+    if(!spot) return res.status(404).json({message: "Spot couldn't be found"})
+
+    const newBooking = await Booking.create({
+        spotId,
+        userId: +req.user.id,
+        startDate,
+        endDate
+    })
+    return res.json({newBooking})
+})
 
 router.get('/:spotId/reviews', async (req, res) => {
     let spotId = +req.params.spotId
@@ -87,18 +147,19 @@ router.get('/current', async (req, res) => {
     const spots = await Spot.findAll({
         where,
          include:[{
-            model: SpotImage
+            model: SpotImage,
+            required: false
         },
         {
             model: Review,
+            required: false,
             attributes: []
         }],
-        attributes: [
-            ...Object.keys(Spot.tableAttributes),
-            [Sequelize.fn('AVG', Sequelize.col('reviews.stars')), 'avgRating']
-        ]
+        attributes: {
+            include: [[Sequelize.literal(`(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)`), 'avgRating']]
+        }
     })
-    console.log(spots)
+
     if(spots.length === 0)return res.json({message: "You have no spots!"})
     if(!spots[0].id)return res.json({message: "You have no spots!"})
 
@@ -132,7 +193,7 @@ router.get('/:spotId', async (req, res) => {
         attributes:{
             include: [
                 [Sequelize.col('spotimages.url'), 'previewImages'],
-                [Sequelize.fn('AVG', Sequelize.col('reviews.stars')), 'avgStarRating'],
+                [Sequelize.literal(`(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)`), 'avgStarRating'],
             ],
         },
     })
@@ -205,6 +266,7 @@ router.delete('/:spotId', async (req, res) => {
 
 
 router.get('/', async (req, res) => {
+    try{
     let spots = await Spot.findAll({
         include: [{
             model: SpotImage,
@@ -220,12 +282,12 @@ router.get('/', async (req, res) => {
             attributes: [],
         }
          ],
-        // attributes:{
-        //     include: [
-        //         [Sequelize.fn('AVG', Sequelize.col('reviews.stars')), 'avgRating'],
-        //         [Sequelize.col('spotimages.url'), 'previewImages'],
-        //     ],
-        // },
+        attributes:{
+            include: [
+                [Sequelize.literal(`(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)`), 'avgRating'],
+                [Sequelize.col('spotimages.url'), 'previewImages'],
+            ],
+        },
     })
 
 
@@ -233,6 +295,9 @@ router.get('/', async (req, res) => {
     if(!spots[0].id)return res.json({message: "No spots avalible"})
 
     res.json({spots})
+    }catch(e){
+        console.log(e)
+    }
 })
 
 router.post('/', async (req, res) => {
