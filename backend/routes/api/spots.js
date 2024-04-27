@@ -1,6 +1,6 @@
 const express = require('express');
 const { Spot, User, SpotImage, Review } = require('../../db/models');
-const Op = require('sequelize')
+const Sequelize = require('sequelize')
 const router = express.Router()
 
 router.get('/:spotId/reviews', async (req, res) => {
@@ -84,16 +84,23 @@ router.get('/current', async (req, res) => {
       const ownerId = +req.user.id
       const where = { ownerId }
 
-    //need to add avgRating
-
     const spots = await Spot.findAll({
         where,
-         include:{
+         include:[{
             model: SpotImage
-        }
+        },
+        {
+            model: Review,
+            attributes: []
+        }],
+        attributes: [
+            ...Object.keys(Spot.tableAttributes),
+            [Sequelize.fn('AVG', Sequelize.col('reviews.stars')), 'avgRating']
+        ]
     })
-
+    console.log(spots)
     if(spots.length === 0)return res.json({message: "You have no spots!"})
+    if(!spots[0].id)return res.json({message: "You have no spots!"})
 
     res.json({spots})
 })
@@ -104,7 +111,6 @@ router.get('/:spotId', async (req, res) => {
     if(!spotId)return res.json({message: "No spot selected."})
 
     const where = {id: +spotId}
-    //add numReviews, avgStarRating
     const spot = await Spot.findOne({
         where,
         include: [{
@@ -116,8 +122,19 @@ router.get('/:spotId', async (req, res) => {
                 'lastName'
             ]
         }, {
-            model: SpotImage
-        }]
+            model: SpotImage,
+            required: false
+        }, {
+            model: Review,
+            retuired: false,
+            attributes: []
+        }],
+        attributes:{
+            include: [
+                [Sequelize.col('spotimages.url'), 'previewImages'],
+                [Sequelize.fn('AVG', Sequelize.col('reviews.stars')), 'avgStarRating'],
+            ],
+        },
     })
 
     if(!spot)return res.json({message: "Spot couldn't be found"})
@@ -188,22 +205,43 @@ router.delete('/:spotId', async (req, res) => {
 
 
 router.get('/', async (req, res) => {
-    //need to add avgRating and previewImages
-    const spots = await Spot.findAll()
+    let spots = await Spot.findAll({
+        include: [{
+            model: SpotImage,
+            required: false,
+            attributes: [],
+            where: {
+                preview: true
+            },
+        },
+        {
+            model: Review,
+            required: false,
+            attributes: [],
+        }
+         ],
+        // attributes:{
+        //     include: [
+        //         [Sequelize.fn('AVG', Sequelize.col('reviews.stars')), 'avgRating'],
+        //         [Sequelize.col('spotimages.url'), 'previewImages'],
+        //     ],
+        // },
+    })
 
-    if(!spots)return res.json({message: "No spots avalible"})
+
+    if(!spots.length === 0 )return res.json({message: "No spots avalible"})
+    if(!spots[0].id)return res.json({message: "No spots avalible"})
 
     res.json({spots})
 })
 
 router.post('/', async (req, res) => {
-    //need to add avgRating and previewImages
     if(!req.user) return res.status(401).json({
         "message": "Authentication required"
       })
 
     const errors = {}
-    const ownerId = req.user.id
+    const ownerId = +req.user.id
     const {address, city, state, country, lat, lng, name, description, price} = req.body
 
     if(!address || typeof address !== 'string' ) errors.address = "Street address is required"
