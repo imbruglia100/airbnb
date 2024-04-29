@@ -2,7 +2,6 @@ const express = require('express');
 const { Spot, User, SpotImage, Review, Booking } = require('../../db/models');
 const Sequelize = require('sequelize');
 const { requireAuth } = require('../../utils/auth');
-const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation')
 
 const router = express.Router()
@@ -32,7 +31,7 @@ router.get('/:spotId/bookings', requireAuth, async (req, res) => {
         })
     }
 
-    if(bookings.length === 0) return res.status(404).json({message: "Spot couldn't be found"})
+    if(bookings.length === 0) return res.status(404).json({message: "No bookings found"})
 
     return res.json({bookings})
 })
@@ -44,6 +43,7 @@ router.post('/:spotId/bookings', [
     let errors = {}
     const { startDate, endDate } = req.body
 
+
     if(Date.parse(startDate) > Date.parse(endDate)) errors.endDate = "endDate cannot be on or before startDate"
 
     if(Date.now() > Date.parse(startDate)) errors.startDate = "startDate cannot be in the past"
@@ -53,6 +53,27 @@ router.post('/:spotId/bookings', [
 
     const spot = await Spot.findByPk(spotId)
     if(!spot) return res.status(404).json({message: "Spot couldn't be found"})
+
+    if(+req.user.id === spot.ownerId)return res.status(400).json({error: 'Owner cannot book a spot'})
+
+    const overLappingBooking = await Booking.findOne({
+        where: {
+            spotId,
+            endDate: {
+                [Sequelize.Op.gt]: this.startDate
+            },
+            startDate: {
+                [Sequelize.Op.lt]: this.endDate
+            }
+        }
+    })
+
+    if(overLappingBooking)return res.status(403).json({
+        "message": "Sorry, this spot is already booked for the specified dates",
+        "errors": {
+          Overbooked: "This spot time is already taken"
+        }
+      })
 
     const newBooking = await Booking.create({
         spotId,
@@ -84,10 +105,7 @@ router.get('/:spotId/reviews', async (req, res) => {
     res.json({reviews})
 })
 
-router.post('/:spotId/reviews', async (req, res) => {
-    if(!req.user) return res.status(401).json({
-        "message": "Authentication required"
-      })
+router.post('/:spotId/reviews', requireAuth, async (req, res) => {
 
     let spotId = +req.params.spotId
 
@@ -112,10 +130,7 @@ router.post('/:spotId/reviews', async (req, res) => {
     res.json({newReview})
 })
 
-router.post('/:spotId/images', async (req, res) => {
-    if(!req.user) return res.status(401).json({
-        "message": "Authentication required"
-      })
+router.post('/:spotId/images', requireAuth, async (req, res) => {
     let { spotId } = req.params
     const { url, preview } = req.body
 
@@ -137,10 +152,7 @@ router.post('/:spotId/images', async (req, res) => {
     res.json({newImage})
 })
 
-router.get('/current', async (req, res) => {
-    if(!req.user) return res.status(401).json({
-        "message": "Authentication required"
-      })
+router.get('/current', requireAuth, async (req, res) => {
       const ownerId = +req.user.id
       const where = { ownerId }
 
@@ -203,10 +215,7 @@ router.get('/:spotId', async (req, res) => {
     res.json({spot})
 })
 
-router.put('/:spotId', async (req, res) => {
-    if(!req.user) return res.status(401).json({
-        "message": "Authentication required"
-      })
+router.put('/:spotId', requireAuth, async (req, res) => {
     let { spotId } = req.params
     spotId = +spotId
     const spot = await Spot.findOne({
@@ -237,10 +246,8 @@ router.put('/:spotId', async (req, res) => {
     res.json({updatedSpot})
 })
 
-router.delete('/:spotId', async (req, res) => {
-    if(!req.user) return res.status(401).json({
-        "message": "Authentication required"
-      })
+router.delete('/:spotId', requireAuth, async (req, res) => {
+
     let { spotId } = req.params
     let id = +spotId
     const spot = await Spot.findOne({
@@ -300,11 +307,7 @@ router.get('/', async (req, res) => {
     }
 })
 
-router.post('/', async (req, res) => {
-    if(!req.user) return res.status(401).json({
-        "message": "Authentication required"
-      })
-
+router.post('/', requireAuth, async (req, res) => {
     const errors = {}
     const ownerId = +req.user.id
     const {address, city, state, country, lat, lng, name, description, price} = req.body
