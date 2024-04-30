@@ -2,7 +2,7 @@ const express = require('express');
 const { Spot, User, SpotImage, Review, Booking } = require('../../db/models');
 const Sequelize = require('sequelize');
 const { requireAuth } = require('../../utils/auth');
-const { handleValidationErrors } = require('../../utils/validation')
+const { Op } = require('sequelize')
 
 const router = express.Router()
 
@@ -168,7 +168,7 @@ router.get('/current', requireAuth, async (req, res) => {
             attributes: []
         }],
         attributes: {
-            include: [[Sequelize.literal(`(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)`), 'avgRating']]
+            include: [[Sequelize.literal('(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)'), 'avgRating']]
         }
     })
 
@@ -204,8 +204,8 @@ router.get('/:spotId', async (req, res) => {
         }],
         attributes:{
             include: [
-                [Sequelize.col('spotimages.url'), 'previewImages'],
-                [Sequelize.literal(`(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)`), 'avgStarRating'],
+                [Sequelize.col('SpotImages.url'), 'previewImages'],
+                [Sequelize.literal('(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)'), 'avgStarRating'],
             ],
         },
     })
@@ -273,14 +273,47 @@ router.delete('/:spotId', requireAuth, async (req, res) => {
 
 
 router.get('/', async (req, res) => {
+
+    let {page, size, minLat, maxLat, minLng, maxLng, minPrice, maxPrice} = req.query
+
+    if(!size || size <= 0 || size > 20) size = 20;
+
+    if(!page || page <= 0) page = 1;
+
+    if(!minLat) minLat = -90
+    if(!maxLat) maxLat = 90
+
+    if(!minLng) minLng = -180
+    if(!maxLng) maxLng = 180
+
+    if(!minPrice) minPrice = 0
+    if(!maxPrice) maxPrice = 100000000
+
+    const offset = +size * (+page - 1)
+    const limit = +size
+
     try{
     let spots = await Spot.findAll({
-        include: [{
+        where: {
+            lat: {
+                [Op.between]: [minLat, maxLat],
+            },
+            lng: {
+                [Op.between]: [minLng, maxLng]
+            },
+            price: {
+                [Op.between]: [minPrice, maxPrice]
+            }
+        },
+        offset,
+        limit,
+        include: [
+            {
             model: SpotImage,
             required: false,
-            attributes: [],
+            attributes: ['url'],
             where: {
-                preview: true
+                preview: true,
             },
         },
         {
@@ -291,15 +324,19 @@ router.get('/', async (req, res) => {
          ],
         attributes:{
             include: [
-                [Sequelize.literal(`(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)`), 'avgRating'],
-                [Sequelize.col('spotimages.url'), 'previewImages'],
+                [Sequelize.literal('(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)'), 'avgRating'],
+                // [Sequelize.col('SpotImages.url'), 'previewImages'],
             ],
         },
     })
 
-
     if(!spots.length === 0 )return res.json({message: "No spots avalible"})
-    if(!spots[0].id)return res.json({message: "No spots avalible"})
+
+    spots = spots.map(spot => ({
+        ...spot.toJSON(),
+        previewImage: spot.SpotImages.length > 0 ? [...spot.SpotImages] : null,
+        SpotImages: null
+    }));
 
     res.json({spots})
     }catch(e){
