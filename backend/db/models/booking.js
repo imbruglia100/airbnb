@@ -34,7 +34,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: false,
       validate: {
-        isAfter: sequelize.NOW
+        isAfter(val){
+         if(Date.parse(val) <= Date.now()){
+          throw new Error("Start date must be after the current date")
+         }
+        }
       }
     },
     endDate: {
@@ -46,7 +50,7 @@ module.exports = (sequelize, DataTypes) => {
             throw new Error("Start date cannot be after end date")
           }
         },
-        
+
       }
     }
   }, {
