@@ -165,17 +165,25 @@ router.get('/current', requireAuth, async (req, res) => {
         {
             model: Review,
             required: false,
-            attributes: []
+            attributes: ['stars']
         }],
-        attributes: {
-            include: [[Sequelize.literal('(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)'), 'avgRating']]
-        }
+
     })
 
     if(spots.length === 0)return res.json({message: "You have no spots!"})
     if(!spots[0].id)return res.json({message: "You have no spots!"})
 
-    res.json({spots})
+    const spotsWithAvgStars = spots.map(spot => {
+        const reviews = spot.Reviews || [];
+        const totalStars = reviews.reduce((acc, review) => acc + review.stars, 0);
+        const avgStars = totalStars / (reviews.length || 1);
+        return {
+            ...spot.toJSON(),
+            avgStars
+        };
+    });
+
+    res.json({spots: spotsWithAvgStars})
 })
 
 router.get('/:spotId', async (req, res) => {
@@ -205,14 +213,26 @@ router.get('/:spotId', async (req, res) => {
         attributes:{
             include: [
                 [Sequelize.col('SpotImages.url'), 'previewImages'],
-                [Sequelize.literal('(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)'), 'avgStarRating'],
+                // [Sequelize.literal('(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)'), 'avgStarRating'],
             ],
         },
     })
 
     if(!spot)return res.json({message: "Spot couldn't be found"})
 
-    res.json({spot})
+    const reviews = await Review.findAll({
+        where:{
+            spotId: spot.id
+        }
+    })
+
+    const length = reviews.length
+    const sum = reviews.reduce((a, review) => a + review.stars, 0)
+    let avgStarRating = null
+
+    if(length) avgStarRating = sum / length
+
+    res.json({...spot.toJSON(), avgStarRating})
 })
 
 router.put('/:spotId', requireAuth, async (req, res) => {
@@ -292,21 +312,24 @@ router.get('/', async (req, res) => {
     const offset = +size * (+page - 1)
     const limit = +size
 
+    const where = {
+        lat: {
+            [Op.between]: [minLat, maxLat],
+        },
+        lng: {
+            [Op.between]: [minLng, maxLng]
+        },
+        price: {
+            [Op.between]: [minPrice, maxPrice]
+        }
+    }
+
     try{
     let spots = await Spot.findAll({
-        where: {
-            lat: {
-                [Op.between]: [minLat, maxLat],
-            },
-            lng: {
-                [Op.between]: [minLng, maxLng]
-            },
-            price: {
-                [Op.between]: [minPrice, maxPrice]
-            }
-        },
+        where,
         offset,
         limit,
+
         include: [
             {
             model: SpotImage,
