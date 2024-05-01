@@ -355,8 +355,9 @@ router.get('/', async (req, res) => {
         return {
             ...spot.toJSON(),
             previewImage: spot.SpotImages.length > 0 ? [...spot.SpotImages] : null,
-            SpotImages: null,
-            avgStars
+            avgStars,
+            Reviews: null,
+            SpotImages: null
         };
     });
 
