@@ -212,8 +212,7 @@ router.get('/:spotId', async (req, res) => {
         }],
         attributes:{
             include: [
-                [Sequelize.col('SpotImages.url'), 'previewImages'],
-                // [Sequelize.literal('(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)'), 'avgStarRating'],
+                [Sequelize.col('SpotImages.url'), 'previewImages']
             ],
         },
     })
@@ -342,24 +341,24 @@ router.get('/', async (req, res) => {
         {
             model: Review,
             required: false,
-            attributes: [],
+            attributes: ['stars'],
         }
          ],
-        attributes:{
-            include: [
-                [Sequelize.literal('(SELECT AVG(stars) FROM Reviews WHERE Reviews.spotId = Spot.id)'), 'avgRating'],
-                // [Sequelize.col('SpotImages.url'), 'previewImages'],
-            ],
-        },
     })
 
     if(!spots.length === 0 )return res.json({message: "No spots avalible"})
 
-    spots = spots.map(spot => ({
-        ...spot.toJSON(),
-        previewImage: spot.SpotImages.length > 0 ? [...spot.SpotImages] : null,
-        SpotImages: null
-    }));
+     spots = spots.map(spot => {
+        const reviews = spot.Reviews || [];
+        const totalStars = reviews.reduce((acc, review) => acc + review.stars, 0);
+        const avgStars = totalStars / (reviews.length || 1);
+        return {
+            ...spot.toJSON(),
+            previewImage: spot.SpotImages.length > 0 ? [...spot.SpotImages] : null,
+            SpotImages: null,
+            avgStars
+        };
+    });
 
     res.json({spots})
     }catch(e){
