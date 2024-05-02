@@ -132,24 +132,26 @@ router.post('/:spotId/reviews', requireAuth, async (req, res) => {
 
 router.post('/:spotId/images', requireAuth, async (req, res) => {
     let { spotId } = req.params
-    const { url, preview } = req.body
+    const body = req.body
 
     const spot = await Spot.findOne({
         where: {
             id: +spotId
         }
     })
-    if(!spot)return res.status(400).json({error: "Spot does not exist"})
+    if(!spot)return res.status(404).json({error: "Spot does not exist"})
 
     if(spot.ownerId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
 
     const newImage = await SpotImage.create({
         spotId,
-        url,
-        preview
+        url: body.url,
+        preview: body.preview
     })
 
-    res.json({newImage})
+    const { id, url, preview } = newImage
+
+    res.json({id, url, preview})
 })
 
 router.get('/current', requireAuth, async (req, res) => {
@@ -160,6 +162,9 @@ router.get('/current', requireAuth, async (req, res) => {
         where,
          include:[{
             model: SpotImage,
+            where: {
+                preview: true
+            },
             required: false
         },
         {
@@ -176,10 +181,12 @@ router.get('/current', requireAuth, async (req, res) => {
     const spotsWithAvgStars = spots.map(spot => {
         const reviews = spot.Reviews || [];
         const totalStars = reviews.reduce((acc, review) => acc + review.stars, 0);
-        const avgStars = totalStars / (reviews.length || 1);
+        const avgRating = totalStars / (reviews.length || 1);
+        const { id, ownerId, address, city, state, country, lat, lng, name, description, price} = spot.toJSON()
         return {
-            ...spot.toJSON(),
-            avgStars
+            id, ownerId, address, city, state, country, lat, lng, name, description, price,
+            avgRating,
+            previewImages: spot.SpotImages.length > 0 ? Spot.SpotImages[0] : null
         };
     });
 
