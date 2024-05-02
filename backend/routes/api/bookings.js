@@ -1,5 +1,5 @@
 const express = require('express');
-const { Booking, Spot, User } = require('../../db/models');
+const { Booking, Spot, User, SpotImage } = require('../../db/models');
 const { requireAuth } = require('../../utils/auth');
 const { Op } = require('sequelize')
 
@@ -10,10 +10,31 @@ router.get('/current', requireAuth, async (req, res) => {
         where: {
             userId: +req.user.id
         },
-        include: Spot
+        include: {
+            model: Spot,
+            include: [{
+                model: SpotImage,
+                required: false,
+                where: {
+                    preview: true
+                }
+            }],
+        }
     })
+
     if(bookings.length === 0)res.json({message: 'No bookings found :('})
-    return res.json({bookings})
+
+    const updatedBooking = bookings.map( booking => {
+        const {id, spotId, Spot, userId, startDate, endDate, createdAt, updatedAt} = booking
+        const { SpotImages } = Spot.toJSON()
+        return({
+            id, spotId,
+            Spot: {...Spot.toJSON(), previewImage: SpotImages[0]?.url || null, SpotImages: null},
+            userId, startDate, endDate, createdAt, updatedAt,
+
+        })
+    })
+    return res.json({updatedBooking})
 })
 
 router.put('/:bookingId', requireAuth, async (req, res) => {
