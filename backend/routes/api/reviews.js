@@ -1,12 +1,10 @@
 const express = require('express');
-const { Review, Spot, ReviewImage } = require('../../db/models');
+const { Review, Spot, ReviewImage, User } = require('../../db/models');
+const { requireAuth } = require('../../utils/auth');
 
 const router = express.Router()
 
-router.post('/:reviewId/images', async (req, res) => {
-    if(!req.user) return res.status(400).json({
-        "message": "Authentication required"
-      })
+router.post('/:reviewId/images', requireAuth, async (req, res) => {
 
     const reviewId = +req.params.reviewId
     const {url} = req.body
@@ -32,10 +30,7 @@ router.post('/:reviewId/images', async (req, res) => {
     res.json({id: newImg.id, url: newImg.url})
 })
 
-router.get('/current', async (req, res) => {
-    if(!req.user) return res.status(400).json({
-        "message": "Authentication required"
-      })
+router.get('/current', requireAuth, async (req, res) => {
 
     const userId = +req.user.id
     const where = {}
@@ -47,6 +42,9 @@ router.get('/current', async (req, res) => {
             model: Spot
         },{
             model: ReviewImage
+        }, {
+            model: User,
+            attributes: ["id", 'firstName', "lastName"]
         }]
     })
 
@@ -55,10 +53,8 @@ router.get('/current', async (req, res) => {
     res.json({Reviews: reviews})
 })
 
-router.put('/:reviewId', async (req, res) => {
-    if(!req.user) return res.status(401).json({
-        "message": "Authentication required"
-      })
+router.put('/:reviewId', requireAuth, async (req, res) => {
+
     const {review, stars} = req.body
     const { reviewId } = req.params
     const reviewToEdit = await Review.findOne({
@@ -81,11 +77,7 @@ router.put('/:reviewId', async (req, res) => {
     return res.json({reviewToEdit})
 })
 
-//FOREIGN KEY CONSTRAINT FAILED need to delete all the imgs i think
-router.delete('/:reviewId', async (req, res) => {
-    if(!req.user) return res.status(401).json({
-        "message": "Authentication required"
-      })
+router.delete('/:reviewId', requireAuth, async (req, res) => {
 
     const reviewId = req.params.reviewId
 

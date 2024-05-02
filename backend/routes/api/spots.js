@@ -1,5 +1,5 @@
 const express = require('express');
-const { Spot, User, SpotImage, Review, Booking } = require('../../db/models');
+const { Spot, User, SpotImage, Review, Booking, ReviewImage } = require('../../db/models');
 const Sequelize = require('sequelize');
 const { requireAuth } = require('../../utils/auth');
 const { Op } = require('sequelize')
@@ -97,7 +97,14 @@ router.get('/:spotId/reviews', async (req, res) => {
     const reviews = await Review.findAll({
         where: {
             spotId
-        }
+        },
+        include: [{
+            model: User,
+            attributes: ["id", 'firstName', 'lastName']
+        },{
+            model: ReviewImage,
+            attributes: ["id", 'url']
+        }]
     })
 
     if(reviews.length === 0)return res.json('There are no reviews :(')
@@ -108,15 +115,27 @@ router.get('/:spotId/reviews', async (req, res) => {
 router.post('/:spotId/reviews', requireAuth, async (req, res) => {
 
     let spotId = +req.params.spotId
-
+    const errors = {}
     const {review, stars} = req.body
+
+    if(!review) errors.review = "Review text is required"
+    if(!stars || stars > 5 || stars < 1) errors.review = "Stars must be an integer from 1 to 5"
+
+    if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad request", errors})
 
     const spot = await Spot.findOne({
         where: {
             id: spotId
-        }
+        },
+        include: Review
     })
     if(!spot)return res.status(404).json({error: "Spot does not exist"})
+
+    const reviewed = spot.toJSON().Reviews.filter( review => review.userId === +req.user.id)
+
+    if(reviewed.length > 0) return res.status(500).json({
+        "message": "User already has a review for this spot"
+      })
 
     const newReview = await Review.create({
         userId: +req.user.id,
@@ -127,7 +146,7 @@ router.post('/:spotId/reviews', requireAuth, async (req, res) => {
 
     await newReview.save()
 
-    res.json({newReview})
+    res.status(201).json({newReview})
 })
 
 router.post('/:spotId/images', requireAuth, async (req, res) => {
@@ -224,7 +243,7 @@ router.get('/:spotId', async (req, res) => {
         },
     })
 
-    if(!spot)return res.json({message: "Spot couldn't be found"})
+    if(!spot)return res.status(404).json({message: "Spot couldn't be found"})
 
     const reviews = await Review.findAll({
         where:{
@@ -238,15 +257,29 @@ router.get('/:spotId', async (req, res) => {
 
     if(length) avgStarRating = sum / length
 
-    res.json({...spot.toJSON(), avgStarRating})
+    res.json({...spot.toJSON(), avgStarRating, numReviews: reviews.length || 0})
 })
 
 router.put('/:spotId', requireAuth, async (req, res) => {
     let { spotId } = req.params
-    spotId = +spotId
+    const errors = {}
+    const body = req.body
+
+    if(!body.address) errors.address = "Street address is required"
+    if(!body.city) errors.city = "City is required"
+    if(!body.state) errors.state = "State is required"
+    if(!body.country) errors.country = "Country is required"
+    if(body.lat > 90 || body.lat < -90) errors.state = "Latitude is not valid"
+    if(body.lng > 180 || body.lng < -180) errors.lng = "Longitude is not valid"
+    if(body.name && body?.name.length >= 50) errors.name = "Name must be less than 50 characters"
+    if(!body.description) errors.state = "Description is required"
+    if(!body.price) errors.price = "Price per day is required"
+
+    if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad request", errors})
+
     const spot = await Spot.findOne({
         where: {
-            id: spotId
+            id: +spotId
         }
     })
 
@@ -254,7 +287,7 @@ router.put('/:spotId', requireAuth, async (req, res) => {
 
     if(spot.ownerId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
 
-    const body = req.body
+
     const updatedSpotBody = {
         address: body.address || spot.address,
         city: body.city || spot.city,
