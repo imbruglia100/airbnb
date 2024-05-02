@@ -10,7 +10,7 @@ router.post('/:reviewId/images', requireAuth, async (req, res) => {
     const {url} = req.body
     const review = await Review.findByPk(reviewId)
     if(!url)return res.json('Url cannot be null')
-    if(!review)return res.status(404).json("Review couldn't be found")
+    if(!review)return res.status(404).json({message: "Review couldn't be found"})
 
     if(review.userId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
 
@@ -56,6 +56,13 @@ router.get('/current', requireAuth, async (req, res) => {
 router.put('/:reviewId', requireAuth, async (req, res) => {
 
     const {review, stars} = req.body
+    const errors = {}
+
+    if(!review) errors.review = "Review text is required"
+    if(!stars || stars > 5 || stars < 1) errors.review = "Stars must be an integer from 1 to 5"
+
+    if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad request", errors})
+    
     const { reviewId } = req.params
     const reviewToEdit = await Review.findOne({
         where:{
