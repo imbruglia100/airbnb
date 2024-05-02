@@ -352,12 +352,11 @@ router.get('/', async (req, res) => {
         const reviews = spot.Reviews || [];
         const totalStars = reviews.reduce((acc, review) => acc + review.stars, 0);
         const avgStars = totalStars / (reviews.length || 1);
+        const { id, ownerId, address, city, state, country, lat, lng, name, description, price} = spot.toJSON()
         return {
-            ...spot.toJSON(),
-            previewImage: spot.SpotImages.length > 0 ? [...spot.SpotImages] : null,
+            id, ownerId, address, city, state, country, lat, lng, name, description, price,
+            previewImage: spot.SpotImages.length > 0 ? spot.SpotImages[0]?.url : null,
             avgStars,
-            Reviews: null,
-            SpotImages: null
         };
     });
 
