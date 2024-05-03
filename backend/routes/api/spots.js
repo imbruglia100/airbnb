@@ -347,9 +347,9 @@ router.get('/', async (req, res) => {
 
     let {page, size, minLat, maxLat, minLng, maxLng, minPrice, maxPrice} = req.query
 
-    if(!size || size <= 0 || size > 20) size = 20;
+    if(!size || size > 20) size = 20;
 
-    if(!page || page <= 0) page = 1;
+    if(!page) page = 1;
 
     if(!minLat) minLat = -90
     if(!maxLat) maxLat = 90
@@ -359,6 +359,18 @@ router.get('/', async (req, res) => {
 
     if(!minPrice) minPrice = 0
     if(!maxPrice) maxPrice = 100000000
+    const errors = {}
+
+    if(page <= 0 ) errors.page = "Page must be greater than or equal to 1"
+    if(size <= 0 ) errors.size = "Size must be greater than or equal to 1"
+    if(maxLat > 90 || maxLat < -90) errors.maxLat = "Maximum latitude is invalid"
+    if(minLat > 90 || minLat < -90) errors.minLat = "Minimum latitude is invalid"
+    if(maxLng > 180 || maxLng < -180) errors.maxLng = "Maximum longitude is invalid"
+    if(minLng > 180 || minLng < -180) errors.minLng = "Maximum latitude is invalid"
+    if(minPrice < 0) errors.minPrice = "Minimum price must be greater than or equal to 0"
+    if(maxPrice < 0) errors.maxPrice = "Maximum price must be greater than or equal to 0"
+
+    if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad request", errors})
 
     const offset = +size * (+page - 1)
     const limit = +size
