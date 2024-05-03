@@ -42,10 +42,11 @@ router.put('/:bookingId', requireAuth, async (req, res) => {
     const { startDate, endDate } = req.body
 
     let errors = {}
-
     if(Date.parse(startDate) < Date.now()) errors.startDate = "startDate cannot be in the past"
     if(Date.parse(startDate) >= Date.parse(endDate)) errors.endDate = "endDate cannot be on or before startDate"
-    if(Object.keys(errors) > 0)return res.status(400).json({message: "Bad request", errors})
+    if(!endDate) errors.endDate = "endDate is required"
+    if(!endDate) errors.startDate = "Start date is required"
+    if(Object.keys(errors).length > 0)return res.status(400).json({message: "Bad request", errors})
 
     if(Date.parse(endDate) < Date.now())return res.status(403).json({message: "Past bookings cannot be modified"})
 
@@ -55,26 +56,37 @@ router.put('/:bookingId', requireAuth, async (req, res) => {
         }
     })
     if(!booking) return res.status(404).json({message: "Booking cannot be found"})
-    if(+req.user.id !== booking.userId) return res.status(400).json({message: 'You are not the owner of this booking.'})
+    if(+req.user.id !== booking.userId) return res.status(403).json({message: 'You are not the owner of this booking.'})
 
-    const overLappingBooking = await Booking.findOne({
+    const overLappingStart = await Booking.findOne({
         spotId: booking.spotId,
         where: {
             endDate: {
-                [Op.gt]: this.startDate
+                [Op.gte]: startDate
             },
             startDate: {
-                [Op.lt]: this.endDate
+                [Op.lte]: startDate
             }
         }
     })
 
-    if(overLappingBooking)return res.status(403).json({
-        "message": "Sorry, this spot is already booked for the specified dates",
-        "errors": {
-          Overbooked: "This spot time is already taken"
+    const overLappingEnd = await Booking.findOne({
+        spotId: booking.spotId,
+        where: {
+            endDate: {
+                [Op.gte]: endDate
+            },
+            startDate: {
+                [Op.lte]: endDate
+            }
         }
-      })
+    })
+
+    if(overLappingStart) errors.startDate = "Start date conflicts with an existing booking"
+
+    if(overLappingEnd) errors.endDate = "End date conflicts with an existing booking"
+
+    if(Object.keys(errors).length > 0)return res.status(403).json({message: "Sorry, this spot is already booked for the specified dates", errors})
 
     booking.set({
         startDate,

@@ -48,7 +48,7 @@ router.post('/:spotId/bookings', [
 
     if(Date.now() > Date.parse(startDate)) errors.startDate = "startDate cannot be in the past"
 
-    if(Object.keys(errors) > 0)return res.status(400).json({message: 'Bad request', errors})
+    if(Object.keys(errors).length > 0)return res.status(400).json({message: 'Bad request', errors})
 
 
     const spot = await Spot.findByPk(spotId)
@@ -56,24 +56,36 @@ router.post('/:spotId/bookings', [
 
     if(+req.user.id === spot.ownerId)return res.status(400).json({error: 'Owner cannot book a spot'})
 
-    const overLappingBooking = await Booking.findOne({
+    const overLappingStart = await Booking.findOne({
+        spotId,
         where: {
-            spotId,
             endDate: {
-                [Sequelize.Op.gt]: this.startDate
+                [Op.gte]: startDate
             },
             startDate: {
-                [Sequelize.Op.lt]: this.endDate
+                [Op.lte]: startDate
             }
         }
     })
 
-    if(overLappingBooking)return res.status(403).json({
-        "message": "Sorry, this spot is already booked for the specified dates",
-        "errors": {
-          Overbooked: "This spot time is already taken"
+    const overLappingEnd = await Booking.findOne({
+        spotId,
+        where: {
+            endDate: {
+                [Op.gte]: endDate
+            },
+            startDate: {
+                [Op.lte]: endDate
+            }
         }
-      })
+    })
+
+    if(overLappingStart) errors.startDate = "Start date conflicts with an existing booking"
+
+    if(overLappingEnd) errors.endDate = "End date conflicts with an existing booking"
+
+    if(Object.keys(errors).length > 0)return res.status(403).json({message: "Sorry, this spot is already booked for the specified dates", errors})
+
 
     const newBooking = await Booking.create({
         spotId,
