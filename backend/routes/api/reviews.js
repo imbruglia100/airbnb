@@ -19,8 +19,8 @@ router.post('/:reviewId/images', requireAuth, async (req, res) => {
             reviewId
         }
     })
-    //potential issue here
-    if(imgCount > 9)return res.status(403).json({"message": "Maximum number of images for this resource was reached"})
+
+    if(imgCount && imgCount >= 10)return res.status(403).json({"message": "Maximum number of images for this resource was reached"})
 
     const newImg = await ReviewImage.create({
         reviewId,
@@ -62,7 +62,7 @@ router.put('/:reviewId', requireAuth, async (req, res) => {
     if(!stars || stars > 5 || stars < 1) errors.review = "Stars must be an integer from 1 to 5"
 
     if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad request", errors})
-    
+
     const { reviewId } = req.params
     const reviewToEdit = await Review.findOne({
         where:{
