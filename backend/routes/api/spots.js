@@ -281,10 +281,10 @@ router.put('/:spotId', requireAuth, async (req, res) => {
     if(!body.city) errors.city = "City is required"
     if(!body.state) errors.state = "State is required"
     if(!body.country) errors.country = "Country is required"
-    if(!body.lat || body.lat > 90 || body.lat < -90) errors.state = "Latitude is not valid"
+    if(!body.lat || body.lat > 90 || body.lat < -90) errors.lat = "Latitude is not valid"
     if(!body.lng || body.lng > 180 || body.lng < -180) errors.lng = "Longitude is not valid"
     if(!body.name || body?.name.length >= 50) errors.name = "Name must be less than 50 characters"
-    if(!body.description) errors.state = "Description is required"
+    if(!body.description) errors.description = "Description is required"
     if(!body.price) errors.price = "Price per day is required"
 
     if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad request", errors})
