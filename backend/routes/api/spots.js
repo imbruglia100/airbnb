@@ -79,7 +79,7 @@ router.post('/:spotId/bookings', [
             }
         }
     })
-    
+
     if(overLappingStart) errors.startDate = "Start date conflicts with an existing booking"
 
     if(overLappingEnd) errors.endDate = "End date conflicts with an existing booking"
@@ -328,6 +328,12 @@ router.delete('/:spotId', requireAuth, async (req, res) => {
     })
     if(!spot)return res.status(404).json({message: 'Spot could not be found'})
     if(spot.ownerId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
+    
+    await Booking.destroy({
+        where: {
+            spotId: id
+        }
+    })
     await SpotImage.destroy({
         where: {
             spotId: id
