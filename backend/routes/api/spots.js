@@ -57,8 +57,8 @@ router.post('/:spotId/bookings', [
     if(+req.user.id === spot.ownerId)return res.status(400).json({error: 'Owner cannot book a spot'})
 
     const overLappingStart = await Booking.findOne({
-        spotId,
         where: {
+            spotId,
             endDate: {
                 [Op.gte]: startDate
             },
@@ -69,8 +69,8 @@ router.post('/:spotId/bookings', [
     })
 
     const overLappingEnd = await Booking.findOne({
-        spotId,
         where: {
+            spotId,
             endDate: {
                 [Op.gte]: endDate
             },
@@ -79,7 +79,7 @@ router.post('/:spotId/bookings', [
             }
         }
     })
-
+    
     if(overLappingStart) errors.startDate = "Start date conflicts with an existing booking"
 
     if(overLappingEnd) errors.endDate = "End date conflicts with an existing booking"

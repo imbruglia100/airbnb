@@ -59,8 +59,8 @@ router.put('/:bookingId', requireAuth, async (req, res) => {
     if(+req.user.id !== booking.userId) return res.status(403).json({message: 'You are not the owner of this booking.'})
 
     const overLappingStart = await Booking.findOne({
-        spotId: booking.spotId,
         where: {
+            spotId: booking.spotId,
             endDate: {
                 [Op.gte]: startDate
             },
@@ -71,8 +71,9 @@ router.put('/:bookingId', requireAuth, async (req, res) => {
     })
 
     const overLappingEnd = await Booking.findOne({
-        spotId: booking.spotId,
+
         where: {
+            spotId: booking.spotId,
             endDate: {
                 [Op.gte]: endDate
             },

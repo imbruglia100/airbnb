@@ -21,7 +21,8 @@ module.exports = (sequelize, DataTypes) => {
       })
       Spot.hasMany(models.Booking, {
         foreignKey: "spotId",
-        onDelete: "CASCADE"
+        onDelete: "CASCADE",
+        hooks: true
       })
     }
   }
@@ -29,7 +30,6 @@ module.exports = (sequelize, DataTypes) => {
     ownerId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      //references users id
       references: {
         model: 'Users',
         key: 'id'
