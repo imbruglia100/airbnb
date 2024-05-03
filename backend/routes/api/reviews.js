@@ -64,6 +64,7 @@ router.put('/:reviewId', requireAuth, async (req, res) => {
     if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad request", errors})
 
     const { reviewId } = req.params
+    if(reviewId === "null")return res.status(404).json({message:'Cannot find review with id null'})
     const reviewToEdit = await Review.findOne({
         where:{
             id: reviewId
