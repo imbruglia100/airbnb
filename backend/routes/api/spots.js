@@ -201,13 +201,13 @@ router.get('/current', requireAuth, async (req, res) => {
         {
             model: Review,
             required: false,
-            attributes: ['stars']
+            attributes: ['stars'],
+            required: false
         }],
 
     })
 
-    if(spots.length === 0)return res.json({message: "You have no spots!"})
-    if(!spots[0].id)return res.json({message: "You have no spots!"})
+    if(!spots || spots.length === 0)return res.status(404).json({message: "You have no spots!"})
 
     const spotsWithAvgStars = spots.map(spot => {
         const reviews = spot.Reviews || [];
@@ -217,7 +217,7 @@ router.get('/current', requireAuth, async (req, res) => {
         return {
             id, ownerId, address, city, state, country, lat, lng, name, description, price,
             avgRating,
-            previewImages: spot.SpotImages.length > 0 ? Spot.SpotImages[0] : null
+            previewImage: spot.SpotImages.length > 0 ? Spot.SpotImages[0] : null
         };
     });
 
