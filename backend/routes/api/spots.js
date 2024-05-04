@@ -218,7 +218,7 @@ router.get('/current', requireAuth, async (req, res) => {
         return {
             id, ownerId, address, city, state, country, lat, lng, name, description, price,
             avgRating,
-            previewImage: spot.SpotImages.length > 0 ? spot.SpotImages[0] : null
+            previewImage: spot.SpotImages.length > 0 ? spot.SpotImages[0].url : null
         };
     });
 
