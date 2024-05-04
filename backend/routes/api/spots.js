@@ -214,10 +214,11 @@ router.get('/current', requireAuth, async (req, res) => {
         const totalStars = reviews.reduce((acc, review) => acc + review.stars, 0);
         const avgRating = totalStars / (reviews.length || 1);
         const { id, ownerId, address, city, state, country, lat, lng, name, description, price} = spot.toJSON()
+
         return {
             id, ownerId, address, city, state, country, lat, lng, name, description, price,
             avgRating,
-            previewImage: spot.SpotImages.length > 0 ? Spot.SpotImages[0] : null
+            previewImage: spot.SpotImages.length > 0 ? spot.SpotImages[0] : null
         };
     });
 
