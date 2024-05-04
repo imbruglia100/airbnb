@@ -11,6 +11,7 @@ router.get('/:spotId/bookings', requireAuth, async (req, res) => {
 
     const spot = await Spot.findByPk(spotId)
 
+    if (!spot)return res.status(404).json({message: 'Cannot find spot'})
     let bookings = {}
 
     if(spot.ownerId === +req.user.id){
@@ -48,7 +49,7 @@ router.post('/:spotId/bookings', [
 
     if(Date.now() > Date.parse(startDate)) errors.startDate = "startDate cannot be in the past"
 
-    if(Object.keys(errors).length > 0)return res.status(400).json({message: 'Bad request', errors})
+    if(Object.keys(errors).length > 0)return res.status(400).json({message: 'Bad Request', errors})
 
 
     const spot = await Spot.findByPk(spotId)
@@ -133,7 +134,7 @@ router.post('/:spotId/reviews', requireAuth, async (req, res) => {
     if(!review) errors.review = "Review text is required"
     if(!stars || stars > 5 || stars < 1) errors.stars = "Stars must be an integer from 1 to 5"
 
-    if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad request", errors})
+    if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad Request", errors})
 
     const spot = await Spot.findOne({
         where: {
@@ -289,7 +290,7 @@ router.put('/:spotId', requireAuth, async (req, res) => {
     if(!body.description) errors.description = "Description is required"
     if(!body.price) errors.price = "Price per day is required"
 
-    if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad request", errors})
+    if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad Request", errors})
 
     const spot = await Spot.findOne({
         where: {
@@ -385,7 +386,7 @@ router.get('/', async (req, res) => {
     if(minPrice < 0) errors.minPrice = "Minimum price must be greater than or equal to 0"
     if(maxPrice < 0) errors.maxPrice = "Maximum price must be greater than or equal to 0"
 
-    if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad request", errors})
+    if(Object.keys(errors).length > 0) return res.status(400).json({message: "Bad Request", errors})
 
     const offset = +size * (+page - 1)
     const limit = +size

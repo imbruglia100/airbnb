@@ -26,15 +26,15 @@ router.get('/current', requireAuth, async (req, res) => {
 
     const updatedBooking = bookings.map( booking => {
         const {id, spotId, Spot, userId, startDate, endDate, createdAt, updatedAt} = booking
-        const { SpotImages } = Spot.toJSON()
+        const { ownerId, address, city, state, country, lat, lng, name, price, SpotImages } = Spot.toJSON()
         return({
             id, spotId,
-            Spot: {...Spot.toJSON(), previewImage: SpotImages[0]?.url || null, SpotImages: null},
+            Spot: {id: spotId, ownerId, address, city, state, country, lat, lng, name, price, previewImage: SpotImages[0]?.url || null},
             userId, startDate, endDate, createdAt, updatedAt,
 
         })
     })
-    return res.json({...updatedBooking.toJSON()})
+    return res.json({Bookings: updatedBooking})
 })
 
 router.put('/:bookingId', requireAuth, async (req, res) => {
@@ -46,7 +46,7 @@ router.put('/:bookingId', requireAuth, async (req, res) => {
     if(Date.parse(startDate) >= Date.parse(endDate)) errors.endDate = "endDate cannot be on or before startDate"
     if(!endDate) errors.endDate = "endDate is required"
     if(!endDate) errors.startDate = "Start date is required"
-    if(Object.keys(errors).length > 0)return res.status(400).json({message: "Bad request", errors})
+    if(Object.keys(errors).length > 0)return res.status(400).json({message: "Bad Request", errors})
 
     if(Date.parse(endDate) < Date.now())return res.status(403).json({message: "Past bookings cannot be modified"})
 
