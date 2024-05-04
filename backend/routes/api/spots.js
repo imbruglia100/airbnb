@@ -33,7 +33,7 @@ router.get('/:spotId/bookings', requireAuth, async (req, res) => {
 
     if(bookings.length === 0) return res.status(404).json({message: "No bookings found"})
 
-    return res.json({bookings})
+    return res.json({Bookings: bookings})
 })
 
 router.post('/:spotId/bookings', [
@@ -93,7 +93,7 @@ router.post('/:spotId/bookings', [
         startDate,
         endDate
     })
-    return res.json({newBooking})
+    return res.json({...newBooking.toJSON()})
 })
 
 router.get('/:spotId/reviews', async (req, res) => {
@@ -119,7 +119,7 @@ router.get('/:spotId/reviews', async (req, res) => {
         }]
     })
 
-    if(reviews.length === 0)return res.json('There are no reviews :(')
+    if(reviews.length === 0)return res.json({message: 'There are no reviews :('})
 
     res.json({Reviews: reviews})
 })
@@ -158,7 +158,7 @@ router.post('/:spotId/reviews', requireAuth, async (req, res) => {
 
     await newReview.save()
 
-    res.status(201).json({...newReview})
+    res.status(201).json({...newReview.toJSON()})
 })
 
 router.post('/:spotId/images', requireAuth, async (req, res) => {
@@ -170,7 +170,7 @@ router.post('/:spotId/images', requireAuth, async (req, res) => {
             id: +spotId
         }
     })
-    if(!spot)return res.status(404).json({error: "Spot does not exist"})
+    if(!spot)return res.status(404).json({message: "Spot does not exist"})
 
     if(spot.ownerId !== +req.user.id) return res.status(403).json({"message": "Forbidden"})
 
@@ -221,7 +221,7 @@ router.get('/current', requireAuth, async (req, res) => {
         };
     });
 
-    res.json({spots: spotsWithAvgStars})
+    res.json({Spots: spotsWithAvgStars})
 })
 
 router.get('/:spotId', async (req, res) => {
@@ -315,7 +315,7 @@ router.put('/:spotId', requireAuth, async (req, res) => {
 
     const updatedSpot = await spot.update(updatedSpotBody)
 
-    res.json({updatedSpot})
+    res.json({...updatedSpot.toJSON()})
 })
 
 router.delete('/:spotId', requireAuth, async (req, res) => {
@@ -429,12 +429,12 @@ router.get('/', async (req, res) => {
      spots = spots.map(spot => {
         const reviews = spot.Reviews || [];
         const totalStars = reviews.reduce((acc, review) => acc + review.stars, 0);
-        const avgStars = totalStars / (reviews.length || 1);
+        const avgRating = totalStars / (reviews.length || 1);
         const { id, ownerId, address, city, state, country, lat, lng, name, description, price} = spot.toJSON()
         return {
             id, ownerId, address, city, state, country, lat, lng, name, description, price,
-            previewImage: spot.SpotImages.length > 0 ? spot.SpotImages[0]?.url : null,
-            avgStars,
+            avgRating,
+            previewImage: spot.SpotImages.length > 0 ? spot.SpotImages[0]?.url : null
         };
     });
 
@@ -476,7 +476,7 @@ router.post('/', requireAuth, async (req, res) => {
         price
     })
 
-    return res.status(201).json(newSpot)
+    return res.status(201).json({...newSpot.toJSON()})
 })
 
 module.exports = router;

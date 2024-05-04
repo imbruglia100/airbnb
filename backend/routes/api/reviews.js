@@ -82,7 +82,7 @@ router.put('/:reviewId', requireAuth, async (req, res) => {
         stars: stars || reviewToEdit.stars
     })
 
-    return res.json({reviewToEdit})
+    return res.json({...reviewToEdit.toJSON()})
 })
 
 router.delete('/:reviewId', requireAuth, async (req, res) => {

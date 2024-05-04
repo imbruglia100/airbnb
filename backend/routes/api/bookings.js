@@ -34,7 +34,7 @@ router.get('/current', requireAuth, async (req, res) => {
 
         })
     })
-    return res.json({updatedBooking})
+    return res.json({...updatedBooking.toJSON()})
 })
 
 router.put('/:bookingId', requireAuth, async (req, res) => {
@@ -96,7 +96,7 @@ router.put('/:bookingId', requireAuth, async (req, res) => {
 
     await booking.save()
 
-    return res.json(booking)
+    return res.json({...booking.toJSON()})
 })
 
 router.delete('/:bookingId', requireAuth, async (req, res) => {
