@@ -121,7 +121,7 @@ router.get('/:spotId/reviews', async (req, res) => {
 
     if(reviews.length === 0)return res.json('There are no reviews :(')
 
-    res.json({reviews})
+    res.json({Reviews: reviews})
 })
 
 router.post('/:spotId/reviews', requireAuth, async (req, res) => {
@@ -141,7 +141,7 @@ router.post('/:spotId/reviews', requireAuth, async (req, res) => {
         },
         include: Review
     })
-    if(!spot)return res.status(404).json({error: "Spot does not exist"})
+    if(!spot)return res.status(404).json({message: "Spot does not exist"})
 
     const reviewed = spot.toJSON().Reviews.filter( review => review.userId === +req.user.id)
 
@@ -158,7 +158,7 @@ router.post('/:spotId/reviews', requireAuth, async (req, res) => {
 
     await newReview.save()
 
-    res.status(201).json({newReview})
+    res.status(201).json({...newReview})
 })
 
 router.post('/:spotId/images', requireAuth, async (req, res) => {
@@ -438,7 +438,7 @@ router.get('/', async (req, res) => {
         };
     });
 
-    res.json({spots})
+    res.json({Spots: spots})
     }catch(e){
         console.log(e)
     }
