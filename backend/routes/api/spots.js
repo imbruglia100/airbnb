@@ -60,11 +60,13 @@ router.post('/:spotId/bookings', [
     const overLappingStart = await Booking.findOne({
         where: {
             spotId,
-            endDate: {
-                [Op.gte]: startDate
-            },
-            startDate: {
-                [Op.lte]: startDate
+            [Op.and]:{
+                endDate: {
+                    [Op.gte]: startDate
+                },
+                startDate: {
+                    [Op.lte]: startDate
+                }
             }
         }
     })
@@ -72,11 +74,28 @@ router.post('/:spotId/bookings', [
     const overLappingEnd = await Booking.findOne({
         where: {
             spotId,
-            endDate: {
-                [Op.gte]: endDate
-            },
-            startDate: {
-                [Op.lte]: endDate
+
+        [Op.and]:  {
+                endDate: {
+                    [Op.gte]: endDate
+                },
+                startDate: {
+                    [Op.lte]: endDate
+                }
+            }
+        }
+    })
+
+    const bookingInside = await Booking.findOne({
+        where: {
+            spotId,
+            [Op.and]:{
+                endDate: {
+                    [Op.lte]: endDate
+                },
+                startDate: {
+                    [Op.gte]: startDate
+                }
             }
         }
     })
@@ -84,7 +103,11 @@ router.post('/:spotId/bookings', [
     if(overLappingStart) errors.startDate = "Start date conflicts with an existing booking"
 
     if(overLappingEnd) errors.endDate = "End date conflicts with an existing booking"
-
+    
+    if(bookingInside){
+        errors.startDate = "Start date conflicts with an existing booking"
+        errors.endDate = "End date conflicts with an existing booking"
+    }
     if(Object.keys(errors).length > 0)return res.status(403).json({message: "Sorry, this spot is already booked for the specified dates", errors})
 
 
