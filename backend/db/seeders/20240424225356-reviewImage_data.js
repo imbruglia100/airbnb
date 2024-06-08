@@ -13,16 +13,8 @@ module.exports = {
     await ReviewImage.bulkCreate([
       {
         reviewId: 1,
-        url: 'url1'
-      },
-      {
-        reviewId: 2,
-        url: 'url2'
-      },
-      {
-        reviewId: 3,
-        url: 'url3'
-      },
+        url: 'https://a0.muscache.com/im/pictures/prohost-api/Hosting-797888716801864029/original/03fe2a3e-f4b2-4c8e-8acc-c6ebe9489264.jpeg?im_w=720'
+      }
     ], { validate: true });
   },
 

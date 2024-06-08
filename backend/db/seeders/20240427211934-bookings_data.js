@@ -18,18 +18,6 @@ module.exports = {
         userId: 1,
         startDate: "2026-12-21",
         endDate: "2026-12-30"
-      },
-      {
-        spotId: 2,
-        userId: 2,
-        startDate: "2027-12-21",
-        endDate: "2027-12-30"
-      },
-      {
-        spotId: 3,
-        userId: 3,
-        startDate: "2028-12-21",
-        endDate: "2028-12-30"
       }
     ], { validate: true });
   }catch(e){

@@ -13,23 +13,11 @@ module.exports = {
   async up (queryInterface, Sequelize) {
     await Review.bulkCreate([
       {
-        userId: 3,
+        userId: 1,
         spotId: 1,
         review: "This was an awesome spot!",
         stars: 5,
-      },
-      {
-        userId: 2,
-        spotId: 4,
-        review: "This was an awesome spot would recommend!",
-        stars: 3,
-      },
-      {
-        userId: 1,
-        spotId: 3,
-        review: "This was an awesome spot will try again!",
-        stars: 5,
-      },
+      }
     ], { validate: true });
   },
 
