@@ -63,7 +63,7 @@ router.get('/current', requireAuth, async (req, res) => {
         const preivewImage = spot.SpotImages ? spot.SpotImages[0].url:null
         const {id, ownerId, address, city, state, country, lat, lng, name, price} = spot
         return {...review.toJSON(), Spot: {id, ownerId, address, city, state, country, lat, lng, name, price, preivewImage}}
-    })[0]
+    })
 
     res.json({Reviews})
 })
