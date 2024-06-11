@@ -56,7 +56,7 @@ router.get('/current', requireAuth, async (req, res) => {
 
     // const previewImage = reviews[0].toJSON().ReviewImages.filter( img => img.preview === true)
 
-    if(reviews.length === 0)return res.json({message: 'You have no reviews'})
+    if(reviews.length === 0)return res.json({})
 
     const Reviews = reviews.map(review => {
         const spot = review.toJSON().Spot
